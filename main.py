@@ -1,6 +1,5 @@
 # =========================================================
-# SIMPLE ICT AI BOT - FIXED VERSION
-# HTF → POI → LTF → MSS → ENTRY
+# ICT AI BOT + DELTA EXCHANGE + TELEGRAM
 # =========================================================
 
 # =========================================================
@@ -10,10 +9,30 @@
 import ccxt
 import pandas as pd
 import time
+import requests
 from datetime import datetime
 
 # =========================================================
-# DELTA EXCHANGE SETUP
+# TELEGRAM SETTINGS
+# =========================================================
+
+TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
+
+CHAT_ID = "7790207379"
+
+def send_telegram(msg):
+
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+
+    data = {
+        "chat_id": CHAT_ID,
+        "text": msg
+    }
+
+    requests.post(url, data=data)
+
+# =========================================================
+# DELTA EXCHANGE
 # =========================================================
 
 exchange = ccxt.binance({
@@ -22,12 +41,15 @@ exchange = ccxt.binance({
     },
     "enableRateLimit": True
 })
-
 # =========================================================
 # SYMBOL
 # =========================================================
 
-SYMBOL = "BTC/USDT"
+SYMBOLS = [
+    "BTC/USDT",
+    "ETH/USDT",
+    "XAU/USD"
+]
 
 # =========================================================
 # FETCH CANDLES
@@ -121,10 +143,6 @@ def get_htf_bias(df):
             "bias": "BEARISH"
         }
 
-    # =====================================================
-    # NEUTRAL
-    # =====================================================
-
     return {
         "bias": "NEUTRAL"
     }
@@ -160,7 +178,7 @@ def get_htf_poi(df, bias):
     return None
 
 # =========================================================
-# PRICE INSIDE POI
+# INSIDE POI
 # =========================================================
 
 def inside_poi(price, poi):
@@ -279,7 +297,7 @@ def entry_model(df, bias):
     current_price = df["close"].iloc[-1]
 
     # =====================================================
-    # BUY ENTRY
+    # BUY
     # =====================================================
 
     if bias == "BULLISH":
@@ -292,7 +310,7 @@ def entry_model(df, bias):
         }
 
     # =====================================================
-    # SELL ENTRY
+    # SELL
     # =====================================================
 
     if bias == "BEARISH":
@@ -309,7 +327,7 @@ def entry_model(df, bias):
 # =========================================================
 # MAIN LOOP
 # =========================================================
-
+send_telegram(str(entry))
 while True:
 
     try:
@@ -318,8 +336,10 @@ while True:
         # GET DATA
         # =================================================
 
-        htf_df = get_candles(SYMBOL, "15m")
-        ltf_df = get_candles(SYMBOL, "1m")
+        for SYMBOL in SYMBOLS:
+
+     htf_df = get_candles(SYMBOL, "15m")
+    ltf_df = get_candles(SYMBOL, "1m")
 
         # =================================================
         # DATA CHECK
@@ -334,7 +354,7 @@ while True:
             continue
 
         # =================================================
-        # SESSION BOX
+        # SESSION
         # =================================================
 
         session = session_filter()
@@ -345,7 +365,7 @@ while True:
         print(session)
 
         # =================================================
-        # HTF BIAS BOX
+        # HTF BIAS
         # =================================================
 
         bias_data = get_htf_bias(htf_df)
@@ -358,7 +378,7 @@ while True:
         print(bias)
 
         # =================================================
-        # HTF POI BOX
+        # HTF POI
         # =================================================
 
         htf_poi = get_htf_poi(htf_df, bias)
@@ -389,7 +409,7 @@ while True:
         print(poi_valid)
 
         # =================================================
-        # SWEEP BOX
+        # LIQUIDITY SWEEP
         # =================================================
 
         sweep = liquidity_sweep(ltf_df)
@@ -400,7 +420,7 @@ while True:
         print(sweep)
 
         # =================================================
-        # MSS BOX
+        # MSS
         # =================================================
 
         mss = detect_mss(ltf_df, bias)
@@ -429,6 +449,12 @@ while True:
             print("FINAL ENTRY BOX")
             print("==============================")
             print(entry)
+
+            # =============================================
+            # TELEGRAM ALERT
+            # =============================================
+
+            send_telegram(str(entry))
 
         else:
 

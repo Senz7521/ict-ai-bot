@@ -11,7 +11,14 @@ st.title("ICT AI BOT")
 # EXCHANGE
 # =========================
 
-exchange = ccxt.binance()
+exchange = ccxt.binance({
+    'enableRateLimit': True,
+    'options': {
+        'defaultType': 'future'
+    }
+})
+
+exchange.set_sandbox_mode(False)
 
 # =========================
 # HTF DATA

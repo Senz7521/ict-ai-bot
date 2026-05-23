@@ -227,14 +227,12 @@ with col1:
 
 # RIGHT SIDE
 with col2:
-
-    st.success("HTF MSS: Bullish")
-
-    st.success("LTF MSS: Bullish")
-
-    st.success("Displacement: Confirmed")
-
-    st.success("MFVG: Active")
+    if htf_bias == "bullish" and ltf_bias == "bullish":
+        st.success("ENTRY: BUY")
+    elif htf_bias == "bearish" and ltf_bias == "bearish":
+        st.error("ENTRY: SELL")
+    else:
+        st.warning("ENTRY: NO TRADE")
 
 # ENTRY SIGNAL
 st.markdown("### ENTRY SIGNAL")

@@ -1,260 +1,527 @@
+# =========================================================
+# ADVANCED ICT AI MODEL
+# HTF → HTF POI → LTF SWEEP → MSS → ENTRY
+# =========================================================
+
+# =========================================================
+# IMPORTS
+# =========================================================
+
 import ccxt
-import requests
+import pandas as pd
+import numpy as np
+import time
+from datetime import datetime
 
-# =========================
-# TELEGRAM CONFIG
-# =========================
+# =========================================================
+# DELTA EXCHANGE SETUP
+# =========================================================
 
-TOKEN = "8724361307:AAHD9f1bQUgzvUr3eW-0TfgpN1eGhNNUaTc"
-CHAT_ID = "7790207379"
+exchange = ccxt.delta({
+    "apiKey": "3TrP8raAhYPCi0U4lujmypLONY55Q9",
+    "secret": "KyvsnJxeiUtiE0wFPUGTLEg59Z2M91e2QKxSEIpM7chqjFPG5GHW6b7xdwlb",
+    "enableRateLimit": True
+})
 
-def send_telegram(msg):
+SYMBOL = "BTC/USDT"
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-    data = {
-        "chat_id": CHAT_ID,
-        "text": msg
+# =========================================================
+# FETCH CANDLES
+# =========================================================
+
+def get_candles(symbol, timeframe, limit=300):
+
+    ohlcv = exchange.fetch_ohlcv(
+        symbol,
+        timeframe,
+        limit=limit
+    )
+
+    df = pd.DataFrame(
+        ohlcv,
+        columns=[
+            "time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume"
+        ]
+    )
+
+    return df
+
+# =========================================================
+# SESSION FILTER
+# LONDON + NEW YORK
+# =========================================================
+
+def session_filter():
+
+    utc_hour = datetime.utcnow().hour
+
+    london = 7 <= utc_hour <= 11
+    new_york = 12 <= utc_hour <= 16
+
+    if london:
+        return "LONDON"
+
+    if new_york:
+        return "NEW_YORK"
+
+    return "DEAD_SESSION"
+
+# =========================================================
+# DISPLACEMENT DETECTION
+# =========================================================
+
+def displacement_filter(df):
+
+    candle_range = (
+        df["high"].iloc[-1] -
+        df["low"].iloc[-1]
+    )
+
+    body = abs(
+        df["close"].iloc[-1] -
+        df["open"].iloc[-1]
+    )
+
+    body_ratio = body / candle_range
+
+    if body_ratio > 0.7:
+        return True
+
+    return False
+
+# =========================================================
+# EXTERNAL LIQUIDITY
+# =========================================================
+
+def external_liquidity(df):
+
+    swing_high = df["high"].rolling(5).max().iloc[-5]
+    swing_low = df["low"].rolling(5).min().iloc[-5]
+
+    return {
+        "buy_side": swing_high,
+        "sell_side": swing_low
     }
 
-    requests.post(url, data=data)
+# =========================================================
+# LIQUIDITY SWEEP DETECTION
+# =========================================================
 
-# =========================
-# EXCHANGE
-# =========================
+def liquidity_sweep(df):
 
-exchange = ccxt.binance()
+    previous_high = df["high"].iloc[-3]
+    previous_low = df["low"].iloc[-3]
 
-# =========================
-# HTF DATA (4H)
-# =========================
+    current_high = df["high"].iloc[-1]
+    current_low = df["low"].iloc[-1]
 
-htf = exchange.fetch_ohlcv(
-    'BTC/USDT',
-    timeframe='4h',
-    limit=50
-)
+    current_close = df["close"].iloc[-1]
 
-htf_highs = [c[2] for c in htf]
-htf_lows = [c[3] for c in htf]
-htf_closes = [c[4] for c in htf]
+    # =========================================
+    # BUY SIDE SWEEP
+    # =========================================
 
-recent_htf_high = max(htf_highs[-20:-1])
-recent_htf_low = min(htf_lows[-20:-1])
+    if current_high > previous_high:
 
-# =========================
+        if current_close < previous_high:
+
+            return {
+                "sweep": "BUY_SIDE_LIQUIDITY",
+                "valid": True
+            }
+
+    # =========================================
+    # SELL SIDE SWEEP
+    # =========================================
+
+    if current_low < previous_low:
+
+        if current_close > previous_low:
+
+            return {
+                "sweep": "SELL_SIDE_LIQUIDITY",
+                "valid": True
+            }
+
+    return {
+        "sweep": "NO_SWEEP",
+        "valid": False
+    }
+
+# =========================================================
 # HTF BIAS
-# =========================
+# =========================================================
 
-if htf_closes[-1] > recent_htf_high:
-    htf_bias = "bullish"
+def get_htf_bias(df):
 
-elif htf_closes[-1] < recent_htf_low:
-    htf_bias = "bearish"
+    last_high = df["high"].iloc[-2]
+    prev_high = df["high"].iloc[-10]
 
-else:
-    htf_bias = "range"
+    last_low = df["low"].iloc[-2]
+    prev_low = df["low"].iloc[-10]
 
-print("HTF Bias:", htf_bias)
+    displacement = displacement_filter(df)
 
-# =========================
-# HTF POI (5M)
-# =========================
+    # =========================================
+    # BULLISH
+    # =========================================
 
-poi = exchange.fetch_ohlcv(
-    'BTC/USDT',
-    timeframe='5m',
-    limit=30
-)
+    if last_high > prev_high and displacement:
 
-bullish_ob = False
-bearish_ob = False
+        return {
+            "bias": "BULLISH",
+            "structure": "BOS_UP"
+        }
 
-for candle in poi:
+    # =========================================
+    # BEARISH
+    # =========================================
 
-    open_ = candle[1]
-    close_ = candle[4]
+    if last_low < prev_low and displacement:
 
-    # Bullish OB
-    if close_ < open_:
-        bullish_ob = True
+        return {
+            "bias": "BEARISH",
+            "structure": "BOS_DOWN"
+        }
 
-    # Bearish OB
-    if close_ > open_:
-        bearish_ob = True
+    return {
+        "bias": "NEUTRAL",
+        "structure": "RANGE"
+    }
 
-# =========================
-# HTF FVG
-# =========================
+# =========================================================
+# PREMIUM / DISCOUNT ARRAY
+# =========================================================
 
-c1_high = poi[-3][2]
-c1_low = poi[-3][3]
+def pd_array(df):
 
-c3_high = poi[-1][2]
-c3_low = poi[-1][3]
+    dealing_high = df["high"].max()
+    dealing_low = df["low"].min()
 
-bullish_fvg = c1_high < c3_low
-bearish_fvg = c1_low > c3_high
+    equilibrium = (
+        dealing_high +
+        dealing_low
+    ) / 2
 
-print("Bullish FVG:", bullish_fvg)
-print("Bearish FVG:", bearish_fvg)
+    current_price = df["close"].iloc[-1]
 
-# =========================
-# LTF DATA (1M)
-# =========================
+    if current_price > equilibrium:
+        return "PREMIUM"
 
-ltf = exchange.fetch_ohlcv(
-    'BTC/USDT',
-    timeframe='1m',
-    limit=20
-)
+    return "DISCOUNT"
 
-ltf_highs = [c[2] for c in ltf]
-ltf_lows = [c[3] for c in ltf]
-ltf_closes = [c[4] for c in ltf]
+# =========================================================
+# REAL FVG DETECTION
+# =========================================================
 
-recent_ltf_high = max(ltf_highs[-10:-1])
-recent_ltf_low = min(ltf_lows[-10:-1])
+def detect_fvg(df, bias):
 
-# =========================
-# LTF BIAS
-# =========================
+    candle1_high = df["high"].iloc[-3]
+    candle1_low = df["low"].iloc[-3]
 
-if ltf_closes[-1] > recent_ltf_high:
-    ltf_bias = "bullish"
+    candle3_high = df["high"].iloc[-1]
+    candle3_low = df["low"].iloc[-1]
 
-elif ltf_closes[-1] < recent_ltf_low:
-    ltf_bias = "bearish"
+    # =========================================
+    # BULLISH FVG
+    # =========================================
 
-else:
-    ltf_bias = "range"
+    if bias == "BULLISH":
 
-print("LTF Bias:", ltf_bias)
+        if candle3_low > candle1_high:
 
-# =========================
-# MSS
-# =========================
+            return {
+                "type": "BULLISH_FVG",
+                "high": candle3_low,
+                "low": candle1_high,
+                "valid": True
+            }
 
-bullish_mss = ltf_closes[-1] > recent_ltf_high
-bearish_mss = ltf_closes[-1] < recent_ltf_low
+    # =========================================
+    # BEARISH FVG
+    # =========================================
 
-print("Bullish MSS:", bullish_mss)
-print("Bearish MSS:", bearish_mss)
+    if bias == "BEARISH":
 
-# =========================
-# DISPLACEMENT
-# =========================
+        if candle3_high < candle1_low:
 
-last = ltf[-1]
+            return {
+                "type": "BEARISH_FVG",
+                "high": candle1_low,
+                "low": candle3_high,
+                "valid": True
+            }
 
-open_price = last[1]
-high_price = last[2]
-low_price = last[3]
-close_price = last[4]
+    return {
+        "type": "NO_FVG",
+        "valid": False
+    }
 
-body = abs(close_price - open_price)
-range_ = high_price - low_price
+# =========================================================
+# MSS DETECTION
+# =========================================================
 
-if range_ == 0:
-    displacement = 0
-else:
-    displacement = body / range_
+def detect_mss(df, bias):
 
-print("Displacement:", displacement)
+    current_close = df["close"].iloc[-1]
 
-# =========================
-# BUY LOGIC
-# =========================
+    swing_high = df["high"].iloc[-4]
+    swing_low = df["low"].iloc[-4]
 
-if htf_bias == "bullish":
+    displacement = displacement_filter(df)
 
-    if bullish_ob or bullish_fvg:
+    # =========================================
+    # BULLISH MSS
+    # =========================================
 
-        if ltf_bias == "bullish":
+    if bias == "BULLISH":
 
-            if bullish_mss:
+        if current_close > swing_high and displacement:
 
-                if displacement > 0.7:
+            return {
+                "mss": "BULLISH_MSS",
+                "valid": True
+            }
 
-                    signal = f'''
-BTCUSDT BUY SIGNAL
+    # =========================================
+    # BEARISH MSS
+    # =========================================
 
-HTF Bias: Bullish
-HTF POI: Bullish
+    if bias == "BEARISH":
 
-LTF Bias: Bullish
-MSS: Confirmed
+        if current_close < swing_low and displacement:
 
-Displacement: {round(displacement,2)}
+            return {
+                "mss": "BEARISH_MSS",
+                "valid": True
+            }
 
-ENTRY: {close_price}
-SL: {low_price}
-TP: External Liquidity
-RR: 1:3
-'''
+    return {
+        "mss": "NO_MSS",
+        "valid": False
+    }
 
-                    print(signal)
+# =========================================================
+# HTF POI
+# =========================================================
 
-                    send_telegram(signal)
+def get_htf_bias(df):
 
-                else:
-                    print("No Buy - Weak Displacement")
+    if len(df) < 20:
 
-            else:
-                print("No Buy - MSS Missing")
+        return {
+            "bias": "NEUTRAL",
+            "structure": "NO_DATA"
+        }
+
+    if bias == "BULLISH":
+
+        return {
+            "type": "BULLISH_OB",
+            "high": df["high"].iloc[-3],
+            "low": df["low"].iloc[-3]
+        }
+
+    if bias == "BEARISH":
+
+        return {
+            "type": "BEARISH_OB",
+            "high": df["high"].iloc[-3],
+            "low": df["low"].iloc[-3]
+        }
+
+# =========================================================
+# PRICE INSIDE HTF POI
+# =========================================================
+
+def inside_htf_poi(price, poi):
+
+    if poi["low"] <= price <= poi["high"]:
+        return True
+
+    return False
+
+# =========================================================
+# ENTRY MODEL
+# =========================================================
+
+def entry_model(df, bias):
+
+    current_price = df["close"].iloc[-1]
+
+    # =========================================
+    # BUY
+    # =========================================
+
+    if bias == "BULLISH":
+
+        return {
+            "type": "BUY",
+            "entry": current_price,
+            "sl": current_price - 150,
+            "tp1": current_price + 300,
+            "tp2": current_price + 600
+        }
+
+    # =========================================
+    # SELL
+    # =========================================
+
+    if bias == "BEARISH":
+
+        return {
+            "type": "SELL",
+            "entry": current_price,
+            "sl": current_price + 150,
+            "tp1": current_price - 300,
+            "tp2": current_price - 600
+        }
+
+# =========================================================
+# MAIN LOOP
+# =========================================================
+
+while True:
+
+    try:
+
+        # =====================================
+        # DATA
+        # =====================================
+
+        htf_df = get_candles(SYMBOL, "15m")
+        ltf_df = get_candles(SYMBOL, "1m")
+
+        # =====================================
+        # SESSION
+        # =====================================
+
+        session = session_filter()
+
+        print("\n==============================")
+        print("SESSION BOX")
+        print("==============================")
+        print(session)
+
+        # =====================================
+        # HTF BIAS
+        # =====================================
+
+        bias_data = get_htf_bias(htf_df)
+
+        print("\n==============================")
+        print("HTF BIAS BOX")
+        print("==============================")
+        print(bias_data)
+
+        bias = bias_data["bias"]
+
+        # =====================================
+        # PD ARRAY
+        # =====================================
+
+        pd_zone = pd_array(htf_df)
+
+        print("\n==============================")
+        print("PREMIUM / DISCOUNT BOX")
+        print("==============================")
+        print(pd_zone)
+
+        # =====================================
+        # HTF POI
+        # =====================================
+
+        htf_poi = get_htf_poi(htf_df, bias)
+
+        print("\n==============================")
+        print("HTF POI BOX")
+        print("==============================")
+        print(htf_poi)
+
+        # =====================================
+        # LIQUIDITY SWEEP
+        # =====================================
+
+        sweep = liquidity_sweep(ltf_df)
+
+        print("\n==============================")
+        print("LIQUIDITY SWEEP BOX")
+        print("==============================")
+        print(sweep)
+
+        # =====================================
+        # FVG
+        # =====================================
+
+        fvg = detect_fvg(ltf_df, bias)
+
+        print("\n==============================")
+        print("FVG BOX")
+        print("==============================")
+        print(fvg)
+
+        # =====================================
+        # MSS
+        # =====================================
+
+        mss = detect_mss(ltf_df, bias)
+
+        print("\n==============================")
+        print("MSS BOX")
+        print("==============================")
+        print(mss)
+
+        # =====================================
+        # CURRENT PRICE
+        # =====================================
+
+        current_price = ltf_df["close"].iloc[-1]
+
+        # =====================================
+        # HTF POI CHECK
+        # =====================================
+
+        poi_check = inside_htf_poi(
+            current_price,
+            htf_poi
+        )
+
+        # =====================================
+        # FINAL ENTRY
+        # =====================================
+
+        if (
+            session != "DEAD_SESSION"
+            and sweep["valid"]
+            and fvg["valid"]
+            and mss["valid"]
+            and poi_check
+        ):
+
+            entry = entry_model(
+                ltf_df,
+                bias
+            )
+
+            print("\n==============================")
+            print("FINAL ENTRY BOX")
+            print("==============================")
+            print(entry)
 
         else:
-            print("No Buy - LTF Bearish")
 
-    else:
-        print("No Buy - No Bullish POI")
+            print("\nNO VALID ENTRY")
 
-# =========================
-# SELL LOGIC
-# =========================
+        time.sleep(10)
 
-elif htf_bias == "bearish":
+    except Exception as e:
 
-    if bearish_ob or bearish_fvg:
+        print("\nERROR:", e)
 
-        if ltf_bias == "bearish":
-
-            if bearish_mss:
-
-                if displacement > 0.7:
-
-                    signal = f'''
-BTCUSDT SELL SIGNAL
-
-HTF Bias: Bearish
-HTF POI: Bearish
-
-LTF Bias: Bearish
-MSS: Confirmed
-
-Displacement: {round(displacement,2)}
-
-ENTRY: {close_price}
-SL: {high_price}
-TP: External Liquidity
-RR: 1:3
-'''
-
-                    print(signal)
-
-                    send_telegram(signal)
-
-                else:
-                    print("No Sell - Weak Displacement")
-
-            else:
-                print("No Sell - MSS Missing")
-
-        else:
-            print("No Sell - LTF Bullish")
-
-    else:
-        print("No Sell - No Bearish POI")
-
-else:
-    print("No Trade - Range Market")
+        time.sleep(5)

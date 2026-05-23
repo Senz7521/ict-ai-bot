@@ -35,7 +35,7 @@ def send_telegram(msg):
 # DELTA EXCHANGE
 # =========================================================
 
-exchange = ccxt.binance({
+exchange = ccxt.bybit({
     "options": {
         "defaultType": "future"
     },

@@ -226,12 +226,13 @@ else:
 # UI
 # =========================
 
-st.subheader("Market Analysis")
+st.markdown("## ICT POI")
 
-st.write("HTF Bias:", htf_bias)
-st.write("LTF Bias:", ltf_bias)
-st.write("Displacement:", round(displacement,2))
-# =========================
+st.info(f"OB Type: {ob_type}")
+st.info(f"OB Price: {ob_price}")
+
+st.success(f"FVG: {fvg}")
+st.success(f"FVG Zone: {fvg_zone}")
 # ENTRY MODEL
 # =========================
 

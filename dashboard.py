@@ -76,7 +76,7 @@ try:
     st.success("BOT RUNNING SUCCESSFULLY")
 
 except Exception as e:
-st.error(f"Error: {e}")
+    st.error(f"Error: {e}")
 recent_htf_high = max(htf_highs[-20:-1])
 recent_htf_low = min(htf_lows[-20:-1])
 

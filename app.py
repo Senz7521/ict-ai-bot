@@ -73,7 +73,7 @@ def send_telegram(message):
 # TEST
 # =========================================================
 
-send_telegram("TEST MESSAGE")
+#send_telegram("TEST MESSAGE")
 
 # =========================================================
 # EXCHANGE

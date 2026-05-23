@@ -135,3 +135,99 @@ else:
 
 st.title("ICT AI BOT")
 st.success("Dashboard Running")
+import streamlit as st
+
+st.set_page_config(
+    page_title="ICT AI BOT",
+    layout="wide"
+)
+
+# ===== STYLE =====
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+}
+
+.main {
+    background-color: #0e1117;
+    color: white;
+}
+
+.big-font {
+    font-size:40px !important;
+    font-weight: bold;
+    color: #00ff99;
+}
+
+.signal-buy {
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #002b1f;
+    color: #00ff99;
+    font-size: 28px;
+    font-weight: bold;
+    text-align:center;
+}
+
+.signal-sell {
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #2b0000;
+    color: red;
+    font-size: 28px;
+    font-weight: bold;
+    text-align:center;
+}
+
+.info-box {
+    padding: 15px;
+    border-radius: 10px;
+    background-color: #1c1f26;
+    margin-bottom: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ===== TITLE =====
+st.markdown('<p class="big-font">ICT AI BOT</p>', unsafe_allow_html=True)
+
+# ===== MARKET DATA =====
+htf_bias = "bullish"
+ltf_bias = "bullish"
+displacement = 1.2
+
+# ===== INFO =====
+st.markdown(f"""
+<div class="info-box">
+<h3>HTF Bias: {htf_bias}</h3>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="info-box">
+<h3>LTF Bias: {ltf_bias}</h3>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="info-box">
+<h3>Displacement: {displacement}</h3>
+</div>
+""", unsafe_allow_html=True)
+
+# ===== SIGNAL =====
+if htf_bias == "bullish" and displacement > 0.7:
+    st.markdown(
+        '<div class="signal-buy">BUY SIGNAL 🚀</div>',
+        unsafe_allow_html=True
+    )
+
+elif htf_bias == "bearish" and displacement > 0.7:
+    st.markdown(
+        '<div class="signal-sell">SELL SIGNAL 🔻</div>',
+        unsafe_allow_html=True
+    )
+
+else:
+    st.warning("RANGE MARKET")

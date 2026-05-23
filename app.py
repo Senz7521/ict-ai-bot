@@ -448,9 +448,7 @@ if not os.path.exists(trade_file):
 # SAVE TRADE
 # =========================================================
 
-if entry == "BUY" or entry == "SELL":
-
-    result = "RUNNING"
+result = "RUNNING"
 pnl = 0
 
 if entry == "BUY":
@@ -477,6 +475,7 @@ if entry == "SELL":
         result = "LOSS"
         pnl = -10
 
+
 new_trade = pd.DataFrame([{
     "PAIR": selected_pair,
     "ENTRY": entry,
@@ -486,7 +485,6 @@ new_trade = pd.DataFrame([{
     "RESULT": result,
     "PNL": pnl
 }])
-
 history = pd.read_csv(trade_file)
 history = pd.concat(
         [history, new_trade],

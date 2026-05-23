@@ -487,14 +487,13 @@ new_trade = pd.DataFrame([{
     "PNL": pnl
 }])
 
-    history = pd.read_csv(trade_file)
-
-    history = pd.concat(
+history = pd.read_csv(trade_file)
+history = pd.concat(
         [history, new_trade],
         ignore_index=True
     )
 
-    history.to_csv(trade_file, index=False)
+history.to_csv(trade_file, index=False)
 
 # =========================================================
 # TELEGRAM ALERT

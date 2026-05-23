@@ -48,8 +48,8 @@ exchange = ccxt.bybit({
 SYMBOLS = [
     "BTC/USDT",
     "ETH/USDT",
-    "XAU/USD"
-]
+    
+
 
 # =========================================================
 # FETCH CANDLES

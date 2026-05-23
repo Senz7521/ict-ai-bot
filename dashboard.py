@@ -25,9 +25,7 @@ if coin == "ETH/USD":
         width=100
     )
 
-try:except Exception as e:
-    st.error(f"Error: {e}")
-
+try:
     # EXCHANGE
     exchange = ccxt.coinbase({
         'enableRateLimit': True
@@ -36,6 +34,8 @@ try:except Exception as e:
     # LIVE PRICE
     ticker = exchange.fetch_ticker(coin)
     st.markdown("## Market Analysis")
+except Exception as e:
+    st.error(f"Error: {e}")
 
 st.markdown("## Entry Model")
 

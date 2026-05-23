@@ -34,7 +34,21 @@ try:
 
     # LIVE PRICE
     ticker = exchange.fetch_ticker(coin)
+    st.markdown("## Market Analysis")
 
+st.markdown("## Entry Model")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.info(f"HTF Bias: {htf_bias}")
+    st.info("HTF POI: Premium Zone")
+    st.info("LTF POI: Discount Zone")
+
+with col2:
+    st.success("MSS: Bullish MSS")
+    st.success("MFVG: Active")
+    st.success("ENTRY: BUY")
     col1, col2, col3 = st.columns(3)
 
     col1.metric(

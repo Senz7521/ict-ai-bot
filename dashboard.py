@@ -24,7 +24,7 @@ exchange.set_sandbox_mode(False)
 # =========================
 
 htf = exchange.fetch_ohlcv(
-    'BTC/USDT',
+    'BTC/USD',
     timeframe='4h',
     limit=50
 )

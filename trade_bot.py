@@ -1,24 +1,8 @@
- import ccxt
+import ccxt
 import pandas as pd
 import time
 
-def new_func():
-    exchange = ccxt.bybit({
-        "apiKey": "MJFbQ47VjMvvApEBG0",
-        "secret": "KWqVRuKV4p1BLFYA21EVhEjCVkmu33ht6N28",
-        "enableRateLimit": True,
-    })
-    
-    return exchange
-
-exchange = new_func()
-
-# DEMO MODE
-exchange.set_sandbox_mode(True)
-
-ticker = exchange.fetch_ticker("BTC/USDT")
-
-print(ticker)
+exchange = ccxt.bybit()
 
 SYMBOL = "BTC/USDT"
 TIMEFRAME = "1m"

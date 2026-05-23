@@ -144,7 +144,7 @@ elif current_close < recent_htf_low:
 else:
     htf_bias = "range"
 else:
-    # defaults if ohlcv not available
+    # defaults if htf data not available
     htf_highs = htf_lows = htf_closes = []
     recent_htf_high = recent_htf_low = 0
 

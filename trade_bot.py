@@ -109,6 +109,39 @@ while True:
 
     entry = "NO ENTRY"
 
+sl = 0
+tp = 0
+
+# BUY ENTRY
+if (
+    htf_bias == "BULLISH"
+    and poi_tap
+    and ltf_mss
+    and micro_mss
+):
+
+    entry = "BUY"
+
+    entry_price = last_close
+
+    sl = entry_price - 5
+    tp = entry_price + 15
+
+# SELL ENTRY
+if (
+    htf_bias == "BEARISH"
+    and poi_tap
+    and ltf_mss
+    and micro_mss
+):
+
+    entry = "SELL"
+
+    entry_price = last_close
+
+    sl = entry_price + 5
+    tp = entry_price - 15
+
     if (
         htf_bias == "BULLISH"
         and poi_tap

@@ -39,6 +39,8 @@ except Exception as e:
 
 st.markdown("## Entry Model")
 
+try:
+
 # =========================
 # HTF BIAS
 # =========================
@@ -63,7 +65,7 @@ elif htf_closes and htf_closes[-1] < recent_htf_low:
 else:
     htf_bias = "range"
 
-col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
 with col1:
     st.info(f"HTF Bias: {htf_bias}")

@@ -4,10 +4,10 @@ import time
 
 def new_func():
     exchange = ccxt.bybit({
-    "apiKey": "MJFbQ47VjMvvApEBG0",
-    "secret": "KWqVRuKV4p1BLFYA21EVhEjCVkmu33ht6N28",
-    "enableRateLimit": True,
-})
+        "apiKey": "MJFbQ47VjMvvApEBG0",
+        "secret": "KWqVRuKV4p1BLFYA21EVhEjCVkmu33ht6N28",
+        "enableRateLimit": True,
+    })
     
     return exchange
 

@@ -433,12 +433,14 @@ trade_file = "trade_history.csv"
 if not os.path.exists(trade_file):
 
     trade_df = pd.DataFrame(columns=[
-        "PAIR",
-        "ENTRY",
-        "SL",
-        "TP",
-        "CONFIDENCE"
-    ])
+    "PAIR",
+    "ENTRY",
+    "SL",
+    "TP",
+    "CONFIDENCE",
+    "RESULT",
+    "PNL"
+])
 
     trade_df.to_csv(trade_file, index=False)
 
@@ -448,13 +450,42 @@ if not os.path.exists(trade_file):
 
 if entry == "BUY" or entry == "SELL":
 
-    new_trade = pd.DataFrame([{
-        "PAIR": selected_pair,
-        "ENTRY": entry,
-        "SL": sl,
-        "TP": tp,
-        "CONFIDENCE": confidence
-    }])
+    result = "RUNNING"
+pnl = 0
+
+if entry == "BUY":
+
+    if last_close >= tp:
+
+        result = "WIN"
+        pnl = 25
+
+    elif last_close <= sl:
+
+        result = "LOSS"
+        pnl = -10
+
+if entry == "SELL":
+
+    if last_close <= tp:
+
+        result = "WIN"
+        pnl = 25
+
+    elif last_close >= sl:
+
+        result = "LOSS"
+        pnl = -10
+
+new_trade = pd.DataFrame([{
+    "PAIR": selected_pair,
+    "ENTRY": entry,
+    "SL": sl,
+    "TP": tp,
+    "CONFIDENCE": confidence,
+    "RESULT": result,
+    "PNL": pnl
+}])
 
     history = pd.read_csv(trade_file)
 
@@ -468,7 +499,27 @@ if entry == "BUY" or entry == "SELL":
 # =========================================================
 # TELEGRAM ALERT
 # =========================================================
+# =========================================================
+# STATS
+# =========================================================
 
+history = pd.read_csv(trade_file)
+
+wins = len(history[history["RESULT"] == "WIN"])
+
+losses = len(history[history["RESULT"] == "LOSS"])
+
+total_trades = wins + losses
+
+if total_trades > 0:
+
+    winrate = round((wins / total_trades) * 100, 2)
+
+else:
+
+    winrate = 0
+
+total_pnl = history["PNL"].sum()
 if entry == "BUY" or entry == "SELL":
 
     send_telegram(
@@ -675,10 +726,33 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+# =========================================================
+# PERFORMANCE
+# =========================================================
 
+st.markdown("## PERFORMANCE")
+
+perf_col1, perf_col2, perf_col3, perf_col4 = st.columns(4)
+
+with perf_col1:
+
+    st.metric("TOTAL TRADES", total_trades)
+
+with perf_col2:
+
+    st.metric("WINS", wins)
+
+with perf_col3:
+
+    st.metric("WIN RATE", f"{winrate}%")
+
+with perf_col4:
+
+    st.metric("TOTAL PNL", total_pnl)
 # =========================================================
 # TRADE HISTORY
 # =========================================================
+
 
 st.markdown("## TRADE HISTORY")
 

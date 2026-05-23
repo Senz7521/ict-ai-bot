@@ -66,9 +66,8 @@ def send_telegram(message):
     data = {
         "chat_id": CHAT_ID,
         "text": message
-    }
-
-   requests.post(url, data=data)
+    }    
+    requests.post(url, data=data)
 
 # =========================================================
 # TEST

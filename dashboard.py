@@ -54,7 +54,7 @@ else:
 # =========================
 
 ltf = exchange.fetch_ohlcv(
-    'BTC/USDT',
+    'BTC/USD',
     timeframe='1m',
     limit=20
 )

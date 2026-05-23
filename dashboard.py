@@ -1,25 +1,18 @@
 import streamlit as st
 import ccxt
 import pandas as pd
-import time
 
 st.set_page_config(page_title="ICT AI BOT", layout="wide")
 
 st.title("ICT AI BOT")
 
-# =========================
 # COIN SELECT
-# =========================
-
 coin = st.selectbox(
     "Select Coin",
     ["BTC/USD", "ETH/USD"]
 )
 
-# =========================
 # LOGO
-# =========================
-
 if coin == "BTC/USD":
     st.image(
         "https://cryptologos.cc/logos/bitcoin-btc-logo.png",
@@ -32,55 +25,58 @@ if coin == "ETH/USD":
         width=100
     )
 
-# =========================
-# EXCHANGE
-# =========================
+try:
 
-exchange = ccxt.coinbase({
-    'enableRateLimit': True
-})
+    # EXCHANGE
+    exchange = ccxt.coinbase({
+        'enableRateLimit': True
+    })
 
-# =========================
-# LIVE DATA
-# =========================
+    # LIVE PRICE
+    ticker = exchange.fetch_ticker(coin)
 
-ticker = exchange.fetch_ticker(coin)
+    col1, col2, col3 = st.columns(3)
 
-st.metric(
-    label="Live Price",
-    value=ticker['last']
-)
+    col1.metric(
+        "Live Price",
+        ticker['last']
+    )
 
-st.metric(
-    label="24H High",
-    value=ticker['high']
-)
+    col2.metric(
+        "24H High",
+        ticker['high']
+    )
 
-st.metric(
-    label="24H Low",
-    value=ticker['low']
-)
+    col3.metric(
+        "24H Low",
+        ticker['low']
+    )
 
-# =========================
-# OHLCV DATA
-# =========================
+    # OHLCV DATA
+    ohlcv = exchange.fetch_ohlcv(
+        coin,
+        timeframe='1h',
+        limit=50
+    )
 
-ohlcv = exchange.fetch_ohlcv(
-    coin,
-    timeframe='1h',
-    limit=50
-)
+    df = pd.DataFrame(
+        ohlcv,
+        columns=[
+            'Time',
+            'Open',
+            'High',
+            'Low',
+            'Close',
+            'Volume'
+        ]
+    )
 
-df = pd.DataFrame(
-    ohlcv,
-    columns=['Time','Open','High','Low','Close','Volume']
-)
+    st.dataframe(df)
 
-st.dataframe(df)
-
-st.success("BOT RUNNING SUCCESSFULLY")
+    st.success("BOT RUNNING SUCCESSFULLY")
 
 except Exception as e:
+
     st.error(f"Error: {e}")
 htf_highs = [c[2] for c in htf]
 htf_lows = [c[3] for c in htf]

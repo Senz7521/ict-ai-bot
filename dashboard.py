@@ -206,7 +206,55 @@ st.subheader("Market Analysis")
 st.write("HTF Bias:", htf_bias)
 st.write("LTF Bias:", ltf_bias)
 st.write("Displacement:", round(displacement,2))
+# =========================
+# ENTRY MODEL
+# =========================
 
+st.markdown("## ENTRY MODEL")
+
+col1, col2 = st.columns(2)
+
+# LEFT SIDE
+with col1:
+
+    st.info("HTF Bias: Bullish")
+
+    st.info("HTF POI: 4H Bullish Order Block")
+
+    st.info("LTF POI: 15M Discount Zone")
+
+    st.info("Liquidity: SSL Swept")
+
+# RIGHT SIDE
+with col2:
+
+    st.success("HTF MSS: Bullish")
+
+    st.success("LTF MSS: Bullish")
+
+    st.success("Displacement: Confirmed")
+
+    st.success("MFVG: Active")
+
+# ENTRY SIGNAL
+st.markdown("### ENTRY SIGNAL")
+
+entry_col1, entry_col2, entry_col3 = st.columns(3)
+
+with entry_col1:
+    st.metric("ENTRY", "BUY")
+
+with entry_col2:
+    st.metric("SL", "76500")
+
+with entry_col3:
+    st.metric("TP", "78200")
+
+# RR
+st.success("Risk Reward: 1 : 3")
+
+# FINAL CONFIRMATION
+st.success("ICT SNIPER MODEL CONFIRMED")
 # =========================
 # SIGNALS
 # =========================

@@ -10,8 +10,8 @@ exchange = ccxt.binance({
 import ccxt
 
 exchange = ccxt.binance({
-    "apiKey": "ys0rRIwJSyDFilMG1GvVzUygnN4rIYhJxwyKSpp57aeLqh7k47O2Y2roCXTf6Xid" 
-    "secret": "Y4DlhhLHdS27v6yFkvZruCnKlgkG9gRNkHzPREpB6jXrAOxhn9aYIZp3S6ViMuor",
+    "apiKey": "023984",
+    "secret": "HdA8qVvrQPTT1ZN3RwmKlzHRyXJ0m4H38JghC0HU8Q6U49jOe4ZOKNJpcgaOaiBr",
     "options": {
         "defaultType": "future"
     }

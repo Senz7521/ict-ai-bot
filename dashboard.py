@@ -10,8 +10,7 @@ st.title("ICT AI BOT")
 # =========================
 # EXCHANGE
 # =========================
-
-exchange = ccxt.binance({
+exchange = ccxt.coinbase()
     'enableRateLimit': True,
     'options': {
         'defaultType': 'future'

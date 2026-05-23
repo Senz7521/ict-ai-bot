@@ -1,29 +1,84 @@
 import streamlit as st
 import ccxt
 import pandas as pd
+import time
+
+st.set_page_config(page_title="ICT AI BOT", layout="wide")
 
 st.title("ICT AI BOT")
 
-try:
+# =========================
+# COIN SELECT
+# =========================
 
-    exchange = ccxt.coinbase({
-        'enableRateLimit': True
-    })
+coin = st.selectbox(
+    "Select Coin",
+    ["BTC/USD", "ETH/USD"]
+)
 
-    htf = exchange.fetch_ohlcv(
-        'BTC/USD',
-        timeframe='1h',
-        limit=50
+# =========================
+# LOGO
+# =========================
+
+if coin == "BTC/USD":
+    st.image(
+        "https://cryptologos.cc/logos/bitcoin-btc-logo.png",
+        width=100
     )
 
-    df = pd.DataFrame(
-        htf,
-        columns=['Time','Open','High','Low','Close','Volume']
+if coin == "ETH/USD":
+    st.image(
+        "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+        width=100
     )
 
-    st.write(df)
+# =========================
+# EXCHANGE
+# =========================
 
-    st.success("BOT RUNNING SUCCESSFULLY")
+exchange = ccxt.coinbase({
+    'enableRateLimit': True
+})
+
+# =========================
+# LIVE DATA
+# =========================
+
+ticker = exchange.fetch_ticker(coin)
+
+st.metric(
+    label="Live Price",
+    value=ticker['last']
+)
+
+st.metric(
+    label="24H High",
+    value=ticker['high']
+)
+
+st.metric(
+    label="24H Low",
+    value=ticker['low']
+)
+
+# =========================
+# OHLCV DATA
+# =========================
+
+ohlcv = exchange.fetch_ohlcv(
+    coin,
+    timeframe='1h',
+    limit=50
+)
+
+df = pd.DataFrame(
+    ohlcv,
+    columns=['Time','Open','High','Low','Close','Volume']
+)
+
+st.dataframe(df)
+
+st.success("BOT RUNNING SUCCESSFULLY")
 
 except Exception as e:
     st.error(f"Error: {e}")

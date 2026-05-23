@@ -9,6 +9,8 @@
 import streamlit as st
 import ccxt
 import pandas as pd
+import plotly.graph_objects as go
+import os
 
 # =========================================================
 # PAGE CONFIG
@@ -18,6 +20,27 @@ st.set_page_config(
     page_title="ICT AI BOT PRO",
     layout="wide"
 )
+
+# =========================================================
+# CUSTOM BACKGROUND
+# =========================================================
+
+st.markdown("""
+<style>
+
+.stApp {
+    background-color: #0e1117;
+    color: white;
+}
+
+[data-testid="stMetric"] {
+    background-color: #1c1f26;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # EXCHANGE
@@ -243,28 +266,67 @@ if entry == "BUY":
 
     ai_review = """
     Bullish structure aligned.
-    Liquidity taken.
+    Liquidity sweep confirmed.
     MSS confirmed.
     FVG confirmed.
-    Buy probability high.
+    High probability buy setup.
     """
 
 elif entry == "SELL":
 
     ai_review = """
     Bearish structure aligned.
-    Liquidity taken.
+    Liquidity sweep confirmed.
     MSS confirmed.
     FVG confirmed.
-    Sell probability high.
+    High probability sell setup.
     """
 
 else:
 
     ai_review = """
-    Market structure incomplete.
-    Waiting for confirmation.
+    Waiting for full confirmation.
+    No valid setup yet.
     """
+
+# =========================================================
+# TRADE HISTORY
+# =========================================================
+
+trade_file = "trade_history.csv"
+
+if not os.path.exists(trade_file):
+
+    trade_df = pd.DataFrame(columns=[
+        "PAIR",
+        "ENTRY",
+        "SL",
+        "TP"
+    ])
+
+    trade_df.to_csv(trade_file, index=False)
+
+# =========================================================
+# SAVE TRADE
+# =========================================================
+
+if entry != "NO ENTRY":
+
+    new_trade = pd.DataFrame([{
+        "PAIR": selected_pair,
+        "ENTRY": entry,
+        "SL": sl,
+        "TP": tp
+    }])
+
+    history = pd.read_csv(trade_file)
+
+    history = pd.concat(
+        [history, new_trade],
+        ignore_index=True
+    )
+
+    history.to_csv(trade_file, index=False)
 
 # =========================================================
 # TITLE
@@ -360,14 +422,7 @@ with col3:
 
         st.subheader("LTF MSS")
 
-        if "BULLISH" in ltf_mss:
-            st.success(ltf_mss)
-
-        elif "BEARISH" in ltf_mss:
-            st.error(ltf_mss)
-
-        else:
-            st.warning(ltf_mss)
+        st.success(ltf_mss)
 
 with col4:
 
@@ -408,12 +463,47 @@ with entry_box:
     st.metric("TAKE PROFIT", tp)
 
 # =========================================================
-# LIVE CHART
+# LIVE CANDLE CHART
 # =========================================================
 
-st.markdown("## LIVE CHART")
+st.markdown("## LIVE MARKET CHART")
 
-st.line_chart(ltf_df["close"])
+fig = go.Figure(
+    data=[
+        go.Candlestick(
+            x=ltf_df.index,
+            open=ltf_df["open"],
+            high=ltf_df["high"],
+            low=ltf_df["low"],
+            close=ltf_df["close"]
+        )
+    ]
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=700,
+    xaxis_rangeslider_visible=False
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# =========================================================
+# TRADE HISTORY
+# =========================================================
+
+st.markdown("## TRADE HISTORY")
+
+history_box = st.container(border=True)
+
+with history_box:
+
+    history = pd.read_csv(trade_file)
+
+    st.dataframe(history)
 
 # =========================================================
 # FOOTER

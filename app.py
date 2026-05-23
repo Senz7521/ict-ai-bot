@@ -343,7 +343,31 @@ if "FVG" in fvg:
 if "MICRO" in micro_mss:
 
     confidence += 20
+# =========================================================
+# SESSION FILTER
+# =========================================================
 
+from datetime import datetime
+
+current_hour = datetime.utcnow().hour
+
+session = "SESSION CLOSED"
+
+session_active = False
+
+# LONDON SESSION
+if 7 <= current_hour <= 11:
+
+    session = "LONDON SESSION"
+
+    session_active = True
+
+# NEW YORK SESSION
+elif 13 <= current_hour <= 17:
+
+    session = "NEW YORK SESSION"
+
+    session_active = True
 # =========================================================
 # ENTRY
 # =========================================================
@@ -363,13 +387,14 @@ if high_impact_news:
 
 # BUY
 if (
-    htf_bias == "BULLISH"
+    session_active
+    and htf_bias == "BULLISH"
     and poi_tap == "POI TAPPED"
     and ltf_mss == "BULLISH MSS"
     and fvg == "BULLISH FVG"
     and micro_mss == "MICRO BULLISH MSS"
-    and allow_trade
 ):
+   
 
     entry = "BUY"
 
@@ -379,12 +404,12 @@ if (
 
 # SELL
 if (
-    htf_bias == "BEARISH"
+    session_active
+    and htf_bias == "BEARISH"
     and poi_tap == "POI TAPPED"
     and ltf_mss == "BEARISH MSS"
     and fvg == "BEARISH FVG"
     and micro_mss == "MICRO BEARISH MSS"
-    and allow_trade
 ):
 
     entry = "SELL"
@@ -548,7 +573,23 @@ LTF MSS: {ltf_mss}
 st.title("ICT AI BOT PRO")
 
 st.success(f"ACTIVE PAIR: {selected_pair}")
+# =========================================================
+# SESSION STATUS
+# =========================================================
 
+st.markdown("## SESSION STATUS")
+
+session_box = st.container(border=True)
+
+with session_box:
+
+    if session_active:
+
+        st.success(session)
+
+    else:
+
+        st.warning(session)
 # =========================================================
 # MARKET ANALYSIS
 # =========================================================

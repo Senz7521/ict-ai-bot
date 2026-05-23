@@ -1,14 +1,12 @@
 import ccxt
 
 exchange = ccxt.bybit({
-    "apiKey": "n40XJzeSxB2mttbbBE",
-    "secret": "6Qq3AZUYzPRcYuyxmc204TL8inSVcvsiLfPl",
-    "enableRateLimit": True,
-    "options": {
-        "defaultType": "linear"
-    }
+    "apiKey": "YOUR_API_KEY",
+    "secret": "YOUR_SECRET_KEY",
+    "enableRateLimit": True
 })
 
-balance = exchange.fetch_balance()
+markets = exchange.load_markets()
 
-print(balance)
+print("CONNECTED")
+print(list(markets.keys())[:10])

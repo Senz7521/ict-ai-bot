@@ -337,9 +337,8 @@ while True:
         # =================================================
 
         for SYMBOL in SYMBOLS:
-
-     htf_df = get_candles(SYMBOL, "15m")
-    ltf_df = get_candles(SYMBOL, "1m")
+            htf_df = get_candles(SYMBOL, "15m")
+            ltf_df = get_candles(SYMBOL, "1m")
 
         # =================================================
         # DATA CHECK

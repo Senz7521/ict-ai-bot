@@ -81,6 +81,20 @@ except Exception as e:
 # =========================
 # HTF BIAS
 # =========================
+# prepare HTF arrays (from previously fetched ohlcv)
+if 'ohlcv' in locals() and ohlcv:
+    htf_highs = [c[2] for c in ohlcv]
+    htf_lows = [c[3] for c in ohlcv]
+    htf_closes = [c[4] for c in ohlcv]
+
+    # use recent 10 candles (exclude last candle)
+    recent_htf_high = max(htf_highs[-10:-1]) if len(htf_highs) >= 2 else htf_highs[-1]
+    recent_htf_low = min(htf_lows[-10:-1]) if len(htf_lows) >= 2 else htf_lows[-1]
+else:
+    # defaults if ohlcv not available
+    htf_highs = htf_lows = htf_closes = []
+    recent_htf_high = recent_htf_low = 0
+
 
 if htf_closes[-1] > recent_htf_high:
     htf_bias = "bullish"

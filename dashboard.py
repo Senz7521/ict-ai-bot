@@ -1,33 +1,32 @@
 import streamlit as st
 import ccxt
-
-# =========================
-# TITLE
-# =========================
+import pandas as pd
 
 st.title("ICT AI BOT")
 
-# =========================
-# EXCHANGE
-# =========================
-exchange = ccxt.coinbase({
-    'enableRateLimit': True,
-    'options': {
-        'defaultType': 'future'
-    }
-})
+try:
 
-exchange.set_sandbox_mode(False)
+    exchange = ccxt.coinbase({
+        'enableRateLimit': True
+    })
 
-# =========================
-# HTF DATA
-# =========================
+    htf = exchange.fetch_ohlcv(
+        'BTC/USD',
+        timeframe='4h',
+        limit=50
+    )
 
-htf = exchange.fetch_ohlcv(
-    'BTC/USD',
-    timeframe='4h',
-    limit=50
-)
+    df = pd.DataFrame(
+        htf,
+        columns=['Time','Open','High','Low','Close','Volume']
+    )
+
+    st.write(df)
+
+    st.success("BOT RUNNING SUCCESSFULLY")
+
+except Exception as e:
+    st.error(f"Error: {e}")
 
 htf_highs = [c[2] for c in htf]
 htf_lows = [c[3] for c in htf]

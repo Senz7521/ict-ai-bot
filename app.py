@@ -1,70 +1,102 @@
 import streamlit as st
 
-st.set_page_config(page_title="ICT AI BOT", layout="wide")
+st.set_page_config(
+    page_title="ICT AI BOT PRO",
+    layout="wide"
+)
+
+# =========================
+# TITLE
+# =========================
 
 st.title("ICT AI BOT PRO")
 
-# =========================
-# HTF BIAS
-# =========================
-
-st.header("HTF BIAS")
-st.success("BULLISH")
+st.markdown("---")
 
 # =========================
-# HTF POI
+# HTF SECTION
 # =========================
 
-st.header("HTF POI")
-st.info("BULLISH ORDER BLOCK")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("## HTF BIAS")
+    st.success("BULLISH")
+
+with col2:
+    st.markdown("## HTF POI")
+    st.info("BULLISH ORDER BLOCK")
+
+st.markdown("---")
 
 # =========================
 # POI TAP
 # =========================
 
-st.header("POI TAP")
-st.warning("POI TAPPED")
+st.markdown("## HTF POI TAP")
+
+tap_box = st.container(border=True)
+
+with tap_box:
+    st.warning("PRICE TOUCHED HTF POI")
+
+st.markdown("---")
 
 # =========================
 # LTF CONFIRMATION
 # =========================
 
-st.header("LTF CONFIRMATION")
+st.markdown("## LTF CONFIRMATION")
 
-st.subheader("LTF MSS")
-st.success("BULLISH MSS")
+col3, col4 = st.columns(2)
 
-# =========================
-# LTF POI
-# =========================
+with col3:
+    box1 = st.container(border=True)
 
-st.subheader("LTF POI")
-st.info("FVG DETECTED")
+    with box1:
+        st.markdown("### LTF MSS")
+        st.success("BULLISH MSS CONFIRMED")
+
+with col4:
+    box2 = st.container(border=True)
+
+    with box2:
+        st.markdown("### LTF POI")
+        st.info("FVG TAP CONFIRMED")
+
+st.markdown("---")
 
 # =========================
 # MICRO MSS
 # =========================
 
-st.subheader("MICRO MSS")
-st.success("MICRO BREAK CONFIRMED")
+st.markdown("## MICRO MSS ENTRY")
+
+micro_box = st.container(border=True)
+
+with micro_box:
+    st.success("MICRO MSS CONFIRMED")
+
+st.markdown("---")
 
 # =========================
 # ENTRY MODEL
 # =========================
 
-st.header("ENTRY MODEL")
+st.markdown("## ENTRY MODEL")
 
-st.success("BUY ENTRY ACTIVE")
+entry_col1, entry_col2, entry_col3 = st.columns(3)
 
-# =========================
-# SL / TP
-# =========================
+with entry_col1:
+    st.metric("ENTRY", "BUY")
 
-st.subheader("STOP LOSS")
-st.error("5 POINT SL")
+with entry_col2:
+    st.metric("STOP LOSS", "5 POINTS")
 
-st.subheader("TAKE PROFIT")
-st.success("15 POINT TP")
+with entry_col3:
+    st.metric("TAKE PROFIT", "15 POINTS")
+
+st.markdown("---")
 
 # =========================
 # FOOTER

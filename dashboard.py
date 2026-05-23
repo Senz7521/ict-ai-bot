@@ -235,19 +235,33 @@ with col2:
         st.warning("ENTRY: NO TRADE")
 
 # ENTRY SIGNAL
-st.markdown("### ENTRY SIGNAL")
 
-entry_col1, entry_col2, entry_col3 = st.columns(3)
+current_price = ticker['last']
 
-with entry_col1:
-    st.metric("ENTRY", "BUY")
+if htf_bias == "bullish":
+    entry = "BUY"
+    sl = round(current_price * 0.98, 2)
+    tp = round(current_price * 1.04, 2)
 
-with entry_col2:
-    st.metric("SL", "76500")
+elif htf_bias == "bearish":
+    entry = "SELL"
+    sl = round(current_price * 1.02, 2)
+    tp = round(current_price * 0.96, 2)
 
-with entry_col3:
-    st.metric("TP", "78200")
+else:
+    entry = "NO TRADE"
+    sl = "-"
+    tp = "-"
 
+# UI
+
+st.markdown("## ENTRY SIGNAL")
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric("ENTRY", entry)
+c2.metric("SL", sl)
+c3.metric("TP", tp)
 # RR
 st.success("Risk Reward: 1 : 3")
 

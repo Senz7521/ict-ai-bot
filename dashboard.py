@@ -190,11 +190,12 @@ else:
 
 # =========================
 # MSS
-# =========================
+
+recent_ltf_high = max(ltf_highs[-20:-1])
+recent_ltf_low = min(ltf_lows[-20:-1])
 
 bullish_mss = ltf_closes[-1] > recent_ltf_high
 bearish_mss = ltf_closes[-1] < recent_ltf_low
-
 # =========================
 # DISPLACEMENT
 # =========================

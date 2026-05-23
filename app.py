@@ -68,8 +68,13 @@ def send_telegram(message):
         "text": message
     }
 
-    requests.post(url, data=data)
-    send_telegram("TEST MESSAGE")
+   requests.post(url, data=data)
+
+# =========================================================
+# TEST
+# =========================================================
+
+send_telegram("TEST MESSAGE")
 
 # =========================================================
 # EXCHANGE

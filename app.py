@@ -1,5 +1,5 @@
 # =========================================================
-# ICT AI BOT PRO
+# ICT AI BOT PRO FINAL
 # =========================================================
 
 # =========================================================
@@ -7,10 +7,20 @@
 # =========================================================
 
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+
 import ccxt
 import pandas as pd
 import plotly.graph_objects as go
+
+import requests
 import os
+
+# =========================================================
+# AUTO REFRESH
+# =========================================================
+
+st_autorefresh(interval=10000, key="refresh")
 
 # =========================================================
 # PAGE CONFIG
@@ -41,6 +51,24 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
+
+# =========================================================
+# TELEGRAM
+# =========================================================
+
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
+
+def send_telegram(message):
+
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+
+    data = {
+        "chat_id": CHAT_ID,
+        "text": message
+    }
+
+    requests.post(url, data=data)
 
 # =========================================================
 # EXCHANGE
@@ -116,12 +144,41 @@ last_low = ltf_df["low"].iloc[-1]
 prev_low = ltf_df["low"].iloc[-2]
 
 # =========================================================
+# SESSION FILTER
+# =========================================================
+
+current_hour = pd.Timestamp.now().hour
+
+if 7 <= current_hour <= 11:
+
+    active_session = "LONDON SESSION"
+
+elif 13 <= current_hour <= 17:
+
+    active_session = "NEW YORK SESSION"
+
+else:
+
+    active_session = "NO ACTIVE SESSION"
+
+allow_trade = active_session != "NO ACTIVE SESSION"
+
+# =========================================================
+# NEWS FILTER
+# =========================================================
+
+high_impact_news = False
+
+# =========================================================
 # HTF BIAS
 # =========================================================
 
 if htf_df["close"].iloc[-1] > htf_df["close"].iloc[-20]:
+
     htf_bias = "BULLISH"
+
 else:
+
     htf_bias = "BEARISH"
 
 # =========================================================
@@ -131,15 +188,21 @@ else:
 if htf_bias == "BULLISH":
 
     if last_low < ltf_df["low"].iloc[-5]:
+
         sweep = "SELL SIDE LIQUIDITY TAKEN"
+
     else:
+
         sweep = "NO SWEEP"
 
 else:
 
     if last_high > ltf_df["high"].iloc[-5]:
+
         sweep = "BUY SIDE LIQUIDITY TAKEN"
+
     else:
+
         sweep = "NO SWEEP"
 
 # =========================================================
@@ -147,8 +210,11 @@ else:
 # =========================================================
 
 if htf_bias == "BULLISH":
+
     htf_poi = round(htf_df["low"].iloc[-10], 2)
+
 else:
+
     htf_poi = round(htf_df["high"].iloc[-10], 2)
 
 # =========================================================
@@ -158,15 +224,21 @@ else:
 if htf_bias == "BULLISH":
 
     if last_low <= htf_poi:
+
         poi_tap = "POI TAPPED"
+
     else:
+
         poi_tap = "WAITING"
 
 else:
 
     if last_high >= htf_poi:
+
         poi_tap = "POI TAPPED"
+
     else:
+
         poi_tap = "WAITING"
 
 # =========================================================
@@ -176,15 +248,21 @@ else:
 if htf_bias == "BULLISH":
 
     if last_high > prev_high:
+
         ltf_mss = "BULLISH MSS"
+
     else:
+
         ltf_mss = "NO MSS"
 
 else:
 
     if last_low < prev_low:
+
         ltf_mss = "BEARISH MSS"
+
     else:
+
         ltf_mss = "NO MSS"
 
 # =========================================================
@@ -194,15 +272,21 @@ else:
 if htf_bias == "BULLISH":
 
     if ltf_df["low"].iloc[-1] > ltf_df["high"].iloc[-3]:
+
         fvg = "BULLISH FVG"
+
     else:
+
         fvg = "NO FVG"
 
 else:
 
     if ltf_df["high"].iloc[-1] < ltf_df["low"].iloc[-3]:
+
         fvg = "BEARISH FVG"
+
     else:
+
         fvg = "NO FVG"
 
 # =========================================================
@@ -212,16 +296,48 @@ else:
 if htf_bias == "BULLISH":
 
     if last_close > prev_close:
+
         micro_mss = "MICRO BULLISH MSS"
+
     else:
+
         micro_mss = "NO MICRO MSS"
 
 else:
 
     if last_close < prev_close:
+
         micro_mss = "MICRO BEARISH MSS"
+
     else:
+
         micro_mss = "NO MICRO MSS"
+
+# =========================================================
+# CONFIDENCE
+# =========================================================
+
+confidence = 0
+
+if htf_bias:
+
+    confidence += 20
+
+if "LIQUIDITY" in sweep:
+
+    confidence += 20
+
+if "MSS" in ltf_mss:
+
+    confidence += 20
+
+if "FVG" in fvg:
+
+    confidence += 20
+
+if "MICRO" in micro_mss:
+
+    confidence += 20
 
 # =========================================================
 # ENTRY
@@ -232,30 +348,44 @@ entry = "NO ENTRY"
 sl = 0
 tp = 0
 
+if not allow_trade:
+
+    entry = "SESSION CLOSED"
+
+if high_impact_news:
+
+    entry = "NEWS TIME NO TRADE"
+
+# BUY
 if (
     htf_bias == "BULLISH"
     and poi_tap == "POI TAPPED"
     and ltf_mss == "BULLISH MSS"
     and fvg == "BULLISH FVG"
     and micro_mss == "MICRO BULLISH MSS"
+    and allow_trade
 ):
 
     entry = "BUY"
 
     sl = round(last_close - 10, 2)
+
     tp = round(last_close + 25, 2)
 
+# SELL
 if (
     htf_bias == "BEARISH"
     and poi_tap == "POI TAPPED"
     and ltf_mss == "BEARISH MSS"
     and fvg == "BEARISH FVG"
     and micro_mss == "MICRO BEARISH MSS"
+    and allow_trade
 ):
 
     entry = "SELL"
 
     sl = round(last_close + 10, 2)
+
     tp = round(last_close - 25, 2)
 
 # =========================================================
@@ -301,7 +431,8 @@ if not os.path.exists(trade_file):
         "PAIR",
         "ENTRY",
         "SL",
-        "TP"
+        "TP",
+        "CONFIDENCE"
     ])
 
     trade_df.to_csv(trade_file, index=False)
@@ -310,13 +441,14 @@ if not os.path.exists(trade_file):
 # SAVE TRADE
 # =========================================================
 
-if entry != "NO ENTRY":
+if entry == "BUY" or entry == "SELL":
 
     new_trade = pd.DataFrame([{
         "PAIR": selected_pair,
         "ENTRY": entry,
         "SL": sl,
-        "TP": tp
+        "TP": tp,
+        "CONFIDENCE": confidence
     }])
 
     history = pd.read_csv(trade_file)
@@ -329,6 +461,34 @@ if entry != "NO ENTRY":
     history.to_csv(trade_file, index=False)
 
 # =========================================================
+# TELEGRAM ALERT
+# =========================================================
+
+if entry == "BUY" or entry == "SELL":
+
+    send_telegram(
+        f"""
+ICT AI BOT ALERT
+
+PAIR: {selected_pair}
+
+ENTRY: {entry}
+
+SL: {sl}
+
+TP: {tp}
+
+CONFIDENCE: {confidence}%
+
+SESSION: {active_session}
+
+HTF BIAS: {htf_bias}
+
+LTF MSS: {ltf_mss}
+"""
+    )
+
+# =========================================================
 # TITLE
 # =========================================================
 
@@ -337,7 +497,7 @@ st.title("ICT AI BOT PRO")
 st.success(f"ACTIVE PAIR: {selected_pair}")
 
 # =========================================================
-# MARKET ANALYSIS BOX
+# MARKET ANALYSIS
 # =========================================================
 
 st.markdown("## MARKET ANALYSIS")
@@ -350,10 +510,12 @@ with market_box:
 
     st.write("CURRENT PRICE:", round(last_close, 2))
 
+    st.write("SESSION:", active_session)
+
     st.write("LIQUIDITY:", sweep)
 
 # =========================================================
-# AI REVIEW BOX
+# AI REVIEW
 # =========================================================
 
 st.markdown("## AI REVIEW")
@@ -365,36 +527,39 @@ with review_box:
     st.write(ai_review)
 
 # =========================================================
-# HTF BOXES
+# HTF STRUCTURE
 # =========================================================
 
 col1, col2 = st.columns(2)
 
 with col1:
 
-    htf_bias_box = st.container(border=True)
+    box1 = st.container(border=True)
 
-    with htf_bias_box:
+    with box1:
 
         st.subheader("HTF BIAS")
 
         if htf_bias == "BULLISH":
+
             st.success(htf_bias)
+
         else:
+
             st.error(htf_bias)
 
 with col2:
 
-    htf_poi_box = st.container(border=True)
+    box2 = st.container(border=True)
 
-    with htf_poi_box:
+    with box2:
 
         st.subheader("HTF POI")
 
         st.info(htf_poi)
 
 # =========================================================
-# POI TAP BOX
+# POI TAP
 # =========================================================
 
 st.markdown("## HTF POI TAP")
@@ -404,21 +569,24 @@ poi_box = st.container(border=True)
 with poi_box:
 
     if poi_tap == "POI TAPPED":
+
         st.success(poi_tap)
+
     else:
+
         st.warning(poi_tap)
 
 # =========================================================
-# LTF MSS + FVG
+# LTF STRUCTURE
 # =========================================================
 
 col3, col4 = st.columns(2)
 
 with col3:
 
-    ltf_box = st.container(border=True)
+    box3 = st.container(border=True)
 
-    with ltf_box:
+    with box3:
 
         st.subheader("LTF MSS")
 
@@ -426,16 +594,16 @@ with col3:
 
 with col4:
 
-    fvg_box = st.container(border=True)
+    box4 = st.container(border=True)
 
-    with fvg_box:
+    with box4:
 
         st.subheader("FVG")
 
         st.info(fvg)
 
 # =========================================================
-# MICRO MSS BOX
+# MICRO MSS
 # =========================================================
 
 st.markdown("## MICRO MSS")
@@ -447,7 +615,19 @@ with micro_box:
     st.success(micro_mss)
 
 # =========================================================
-# ENTRY BOX
+# CONFIDENCE
+# =========================================================
+
+st.markdown("## AI CONFIDENCE")
+
+confidence_box = st.container(border=True)
+
+with confidence_box:
+
+    st.metric("CONFIDENCE", f"{confidence}%")
+
+# =========================================================
+# ENTRY MODEL
 # =========================================================
 
 st.markdown("## ENTRY MODEL")
@@ -463,7 +643,7 @@ with entry_box:
     st.metric("TAKE PROFIT", tp)
 
 # =========================================================
-# LIVE CANDLE CHART
+# LIVE CHART
 # =========================================================
 
 st.markdown("## LIVE MARKET CHART")
@@ -511,4 +691,4 @@ with history_box:
 
 st.markdown("---")
 
-st.caption("ICT AI BOT PRO")
+st.caption("ICT AI BOT PRO FINAL")

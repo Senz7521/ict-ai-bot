@@ -16,6 +16,16 @@ while True:
         columns=["time","open","high","low","close","volume"]
     )
 
-    print(df.tail())
+    last_close = df["close"].iloc[-1]
+    prev_close = df["close"].iloc[-2]
+
+    print("PRICE:", last_close)
+
+    if last_close > prev_close:
+        print("BIAS = BULLISH")
+    else:
+        print("BIAS = BEARISH")
+
+    print("-------------")
 
     time.sleep(10)

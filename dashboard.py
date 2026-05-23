@@ -124,38 +124,25 @@ except Exception as e:
 # HTF BIAS REAL LOGIC
 # =========================
 
-htf_highs = [c[2] for c in htf]
-htf_lows = [c[3] for c in htf]
-htf_closes = [c[4] for c in htf]
+if 'htf' in locals() and htf:
+    htf_highs = [c[2] for c in htf]
+    htf_lows = [c[3] for c in htf]
+    htf_closes = [c[4] for c in htf]
 
-recent_htf_high = max(htf_highs[-20:-1])
-recent_htf_low = min(htf_lows[-20:-1])
+    recent_htf_high = max(htf_highs[-20:-1]) if len(htf_highs) >= 2 else htf_highs[-1]
+    recent_htf_low = min(htf_lows[-20:-1]) if len(htf_lows) >= 2 else htf_lows[-1]
+    current_close = htf_closes[-1]
 
-current_close = htf_closes[-1]
-
-# REAL BIAS
-
-if current_close > recent_htf_high:
-    htf_bias = "bullish"
-
-elif current_close < recent_htf_low:
-    htf_bias = "bearish"
-
-else:
-    htf_bias = "range"
+    if current_close > recent_htf_high:
+        htf_bias = "bullish"
+    elif current_close < recent_htf_low:
+        htf_bias = "bearish"
+    else:
+        htf_bias = "range"
 else:
     # defaults if htf data not available
     htf_highs = htf_lows = htf_closes = []
     recent_htf_high = recent_htf_low = 0
-
-
-if htf_closes[-1] > recent_htf_high:
-    htf_bias = "bullish"
-
-elif htf_closes[-1] < recent_htf_low:
-    htf_bias = "bearish"
-
-else:
     htf_bias = "range"
 
 # =========================

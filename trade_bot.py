@@ -1,8 +1,8 @@
 import ccxt
 
 exchange = ccxt.bybit({
-    "apiKey": "YOUR_API_KEY",
-    "secret": "YOUR_SECRET_KEY",
+    "apiKey": "n40XJzeSxB2mttbbBE",
+    "secret": "6Qq3AZUYzPRcYuyxmc204TL8inSVcvsiLfPl",
     "enableRateLimit": True
 })
 

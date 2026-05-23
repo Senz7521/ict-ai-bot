@@ -120,17 +120,29 @@ except Exception as e:
     st.error(f"Error: {e}")
 
 # =========================
-# HTF BIAS
 # =========================
-# prepare HTF arrays (from previously fetched ohlcv)
-if 'ohlcv' in locals() and ohlcv:
-    htf_highs = [c[2] for c in ohlcv]
-    htf_lows = [c[3] for c in ohlcv]
-    htf_closes = [c[4] for c in ohlcv]
+# HTF BIAS REAL LOGIC
+# =========================
 
-    # use recent 10 candles (exclude last candle)
-    recent_htf_high = max(htf_highs[-10:-1]) if len(htf_highs) >= 2 else htf_highs[-1]
-    recent_htf_low = min(htf_lows[-10:-1]) if len(htf_lows) >= 2 else htf_lows[-1]
+htf_highs = [c[2] for c in htf]
+htf_lows = [c[3] for c in htf]
+htf_closes = [c[4] for c in htf]
+
+recent_htf_high = max(htf_highs[-20:-1])
+recent_htf_low = min(htf_lows[-20:-1])
+
+current_close = htf_closes[-1]
+
+# REAL BIAS
+
+if current_close > recent_htf_high:
+    htf_bias = "bullish"
+
+elif current_close < recent_htf_low:
+    htf_bias = "bearish"
+
+else:
+    htf_bias = "range"
 else:
     # defaults if ohlcv not available
     htf_highs = htf_lows = htf_closes = []

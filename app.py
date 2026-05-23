@@ -88,7 +88,9 @@ exchange = ccxt.bybit()
 pairs = [
     "BTC/USDT",
     "ETH/USDT",
-    "XRP/USDT"
+    "XRP/USDT",
+    "XAU/USD",
+    "XAG/USD"
 ]
 
 # =========================================================

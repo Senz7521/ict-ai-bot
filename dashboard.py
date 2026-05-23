@@ -168,25 +168,38 @@ ltf = exchange.fetch_ohlcv(
     limit=20
 )
 
+# =========================
+# ICT POI DETECTION
+# =========================
+
 ltf_highs = [c[2] for c in ltf]
 ltf_lows = [c[3] for c in ltf]
+ltf_opens = [c[1] for c in ltf]
 ltf_closes = [c[4] for c in ltf]
 
-recent_ltf_high = max(ltf_highs[-10:-1])
-recent_ltf_low = min(ltf_lows[-10:-1])
+# ORDER BLOCK
 
-# =========================
-# LTF BIAS
-# =========================
-
-if ltf_closes[-1] > recent_ltf_high:
-    ltf_bias = "bullish"
-
-elif ltf_closes[-1] < recent_ltf_low:
-    ltf_bias = "bearish"
+if ltf_closes[-2] > ltf_opens[-2]:
+    ob_type = "Bullish Order Block"
+    ob_price = ltf_lows[-2]
 
 else:
-    ltf_bias = "range"
+    ob_type = "Bearish Order Block"
+    ob_price = ltf_highs[-2]
+
+# FVG DETECTION
+
+if ltf_lows[-1] > ltf_highs[-3]:
+    fvg = "Bullish FVG"
+    fvg_zone = f"{ltf_highs[-3]} - {ltf_lows[-1]}"
+
+elif ltf_highs[-1] < ltf_lows[-3]:
+    fvg = "Bearish FVG"
+    fvg_zone = f"{ltf_highs[-1]} - {ltf_lows[-3]}"
+
+else:
+    fvg = "No FVG"
+    fvg_zone = "-"
 
 # =========================
 # MSS

@@ -12,7 +12,7 @@ try:
 
     htf = exchange.fetch_ohlcv(
         'BTC/USD',
-        timeframe='4h',
+        timeframe='1h',
         limit=50
     )
 
@@ -27,7 +27,6 @@ try:
 
 except Exception as e:
     st.error(f"Error: {e}")
-
 htf_highs = [c[2] for c in htf]
 htf_lows = [c[3] for c in htf]
 htf_closes = [c[4] for c in htf]

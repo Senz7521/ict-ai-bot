@@ -113,9 +113,8 @@ def session_filter():
 # HTF BIAS
 # =========================================================
 
+  
 def get_htf_bias(df):
-
-    def get_htf_bias(df):
 
         last_high = df["high"].iloc[-2]
         old_high = df["high"].iloc[-10]

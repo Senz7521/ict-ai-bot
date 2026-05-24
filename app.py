@@ -784,4 +784,3 @@ st.dataframe(history)
 st.markdown("---")
 
 st.caption("ICT AI BOT PRO FINAL FIXED")
-```

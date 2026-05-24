@@ -112,24 +112,24 @@ def session_filter():
 # =========================================================
 # HTF BIAS
 # =========================================================
-
-  
 def get_htf_bias(df):
 
-        last_high = df["high"].iloc[-2]
-        old_high = df["high"].iloc[-10]
+    if len(df) < 10:
+        return "NEUTRAL"
 
-        last_low = df["low"].iloc[-2]
-        old_low = df["low"].iloc[-10]
+    last_high = df["high"].iloc[-2]
+    old_high = df["high"].iloc[-10]
 
-        # Bullish Structure
-        if last_high > old_high:
-            return "BULLISH"
+    last_low = df["low"].iloc[-2]
+    old_low = df["low"].iloc[-10]
 
-        # Bearish Structure
-        elif last_low < old_low:
-            return "BEARISH"
+    if last_high > old_high:
+        return "BULLISH"
 
+    elif last_low < old_low:
+        return "BEARISH"
+
+    else:
         return "NEUTRAL"
 
 # =========================================================

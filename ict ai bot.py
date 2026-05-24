@@ -84,8 +84,6 @@ def get_candles(symbol, timeframe="1m", limit=200):
             ]
         )
 
-        df["ema_200"] = df["close"].ewm(span=200).mean()
-
         return df
 
     except Exception as e:

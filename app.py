@@ -2,6 +2,7 @@
 # ICT AI BOT PRO MAX ULTRA FINAL
 # SMART MONEY CONCEPT VERSION
 # FULL FINAL CLEAN VERSION
+# TOKYO FIXED VERSION
 # =========================================================
 
 # =========================================================
@@ -215,15 +216,18 @@ def get_data(symbol,timeframe,limit=200):
 
 def session_filter():
 
-    hour = datetime.utcnow().hour
+    india_hour = datetime.now().hour
 
-    if 0 <= hour <= 5:
+    # TOKYO SESSION
+    if 5 <= india_hour < 12:
         return "TOKYO SESSION"
 
-    elif 7 <= hour <= 11:
+    # LONDON SESSION
+    elif 12 <= india_hour < 17:
         return "LONDON SESSION"
 
-    elif 12 <= hour <= 16:
+    # NEW YORK SESSION
+    elif 17 <= india_hour < 22:
         return "NEW YORK SESSION"
 
     return "NO TRADE SESSION"
@@ -234,15 +238,18 @@ def session_filter():
 
 def killzone():
 
-    hour = datetime.utcnow().hour
+    india_hour = datetime.now().hour
 
-    if 0 <= hour <= 2:
+    # TOKYO KILLZONE
+    if 5 <= india_hour < 8:
         return "TOKYO KILLZONE"
 
-    elif 7 <= hour <= 10:
+    # LONDON KILLZONE
+    elif 13 <= india_hour < 16:
         return "LONDON KILLZONE"
 
-    elif 13 <= hour <= 15:
+    # NEW YORK KILLZONE
+    elif 18 <= india_hour < 21:
         return "NEW YORK KILLZONE"
 
     return "OUTSIDE KILLZONE"
@@ -468,7 +475,6 @@ if (
 ):
 
     session = session_filter()
-
     kz = killzone()
 
     bias_4h = get_htf_bias(htf_4h)
@@ -494,20 +500,13 @@ if (
             tapped = True
 
     mss = detect_mss(ltf_df,bias)
-
     micro = micro_mss(ltf_df,bias)
-
     fvg = detect_fvg(ltf_df,bias)
-
     sweep = liquidity_sweep(ltf_df)
-
     displacement_signal = displacement(ltf_df)
-
     pd_zone = pd_array(htf_4h)
 
-    # =====================================================
     # LIVE CHART
-    # =====================================================
 
     st.subheader("LIVE CHART")
 
@@ -519,8 +518,7 @@ if (
             open=ltf_df["open"],
             high=ltf_df["high"],
             low=ltf_df["low"],
-            close=ltf_df["close"],
-            name="PRICE"
+            close=ltf_df["close"]
         )
     )
 
@@ -529,9 +527,7 @@ if (
         use_container_width=True
     )
 
-    # =====================================================
     # TOP BOXES
-    # =====================================================
 
     c1,c2,c3,c4 = st.columns(4)
 
@@ -559,9 +555,7 @@ if (
             unsafe_allow_html=True
         )
 
-    # =====================================================
     # HTF ANALYSIS
-    # =====================================================
 
     st.subheader("HTF ANALYSIS")
 
@@ -585,9 +579,47 @@ if (
             unsafe_allow_html=True
         )
 
-    # =====================================================
+    # SIGNAL BOXES
+
+    s1,s2 = st.columns(2)
+
+    with s1:
+        st.markdown(
+            f'<div class="box yellow">LIQUIDITY SWEEP<br>{sweep}</div>',
+            unsafe_allow_html=True
+        )
+
+    with s2:
+        st.markdown(
+            f'<div class="box purple">PD ARRAY<br>{pd_zone}</div>',
+            unsafe_allow_html=True
+        )
+
+    s3,s4 = st.columns(2)
+
+    with s3:
+        st.markdown(
+            f'<div class="box green">MSS<br>{mss}</div>',
+            unsafe_allow_html=True
+        )
+
+    with s4:
+        st.markdown(
+            f'<div class="box blue">FVG<br>{fvg}</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown(
+        f'<div class="box purple">MICRO MSS<br>{micro}</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<div class="box yellow">DISPLACEMENT<br>{displacement_signal}</div>',
+        unsafe_allow_html=True
+    )
+
     # AI CONFIDENCE
-    # =====================================================
 
     score = 0
 
@@ -611,9 +643,7 @@ if (
         unsafe_allow_html=True
     )
 
-    # =====================================================
     # ENTRY MODEL
-    # =====================================================
 
     st.subheader("ENTRY MODEL")
 
@@ -622,26 +652,20 @@ if (
         and tapped
         and bias != "NEUTRAL"
         and bias_4h == bias_1h
-        and (
-            session == "LONDON SESSION"
-            or session == "NEW YORK SESSION"
-        )
     ):
 
         if bias == "BULLISH":
 
             entry = current_price
-
             sl = round(entry - 20,2)
 
             tp1 = round(entry + 20,2)
             tp2 = round(entry + 40,2)
             tp3 = round(entry + 60,2)
 
-        elif bias == "BEARISH":
+        else:
 
             entry = current_price
-
             sl = round(entry + 20,2)
 
             tp1 = round(entry - 20,2)
@@ -672,16 +696,13 @@ CONFIDENCE : {score}%
         if st.session_state.last_signal != signal:
 
             send_telegram(signal)
-
             st.session_state.last_signal = signal
 
     else:
 
         st.warning("NO VALID SMART MONEY ENTRY")
 
-    # =====================================================
     # DASHBOARD
-    # =====================================================
 
     st.subheader("TRADING DASHBOARD")
 
@@ -718,45 +739,19 @@ CONFIDENCE : {score}%
         unsafe_allow_html=True
     )
 
-    # =====================================================
     # TRADE HISTORY
-    # =====================================================
 
     st.subheader("TODAY TRADE HISTORY")
 
     trade_data = pd.DataFrame({
 
-        "PAIR":[
-            "BTC",
-            "ETH",
-            "XAU",
-            "SOL",
-            "BTC"
-        ],
+        "PAIR":["BTC","ETH","XAU","SOL","BTC"],
 
-        "TYPE":[
-            "BUY",
-            "SELL",
-            "BUY",
-            "SELL",
-            "BUY"
-        ],
+        "TYPE":["BUY","SELL","BUY","SELL","BUY"],
 
-        "RESULT":[
-            "WIN",
-            "WIN",
-            "LOSS",
-            "WIN",
-            "WIN"
-        ],
+        "RESULT":["WIN","WIN","LOSS","WIN","WIN"],
 
-        "PROFIT":[
-            "+120",
-            "+90",
-            "-40",
-            "+150",
-            "+70"
-        ]
+        "PROFIT":["+120","+90","-40","+150","+70"]
 
     })
 

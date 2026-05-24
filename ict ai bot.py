@@ -256,7 +256,7 @@ def detect_fvg(df, bias):
 # ENTRY MODEL
 # =========================================================
 
-def entry_model(df, bias):
+def entry_model(df, bias, mss):
 
     current_price = df["close"].iloc[-1]
 
@@ -379,9 +379,9 @@ if ltf_df is not None:
 
     st.write(f"CURRENT PRICE: {current_price}")
 
-    st.write(f"SESSION: {session_filter()}")
+   st.write(f"SESSION: {session_filter()}")
 
-    st.write(f"LIQUIDITY: {sweep}")
+   st.write(f"LIQUIDITY: {sweep}")
 
     st.subheader("AI REVIEW")
 
@@ -422,4 +422,4 @@ if ltf_df is not None:
 
 else:
 
-       st.error("DATA NOT LOADED")
+       st.error( "DATA NOT LOADED" )

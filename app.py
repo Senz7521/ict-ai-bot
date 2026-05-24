@@ -546,25 +546,82 @@ total_pnl = history["PNL"].sum()
 if entry == "BUY" or entry == "SELL":
 
     send_telegram(
-        f"""
+# =========================
+# ENTRY + TP/SL
+# =========================
+
+entry_price = current_price
+
+if side == "SELL":
+    tp1 = round(entry_price - 10, 2)
+    tp2 = round(entry_price - 20, 2)
+    tp3 = round(entry_price - 35, 2)
+
+    poi_type = "Bearish Order Block"
+    entry_model = "Micro Bearish FVG"
+
+    htf_bias = "BEARISH"
+    ltf_mss = "BEARISH MSS"
+
+else:
+    tp1 = round(entry_price + 10, 2)
+    tp2 = round(entry_price + 20, 2)
+    tp3 = round(entry_price + 35, 2)
+
+    poi_type = "Bullish Order Block"
+    entry_model = "Micro Bullish FVG"
+
+    htf_bias = "BULLISH"
+    ltf_mss = "BULLISH MSS"
+
+
+# =========================
+# TELEGRAM ALERT MESSAGE
+# =========================
+
+msg = f"""
 ICT AI BOT ALERT
 
-PAIR: {selected_pair}
+PAIR: {symbol}
 
-ENTRY: {entry}
+TRADE TYPE: {side}
+
+ENTRY PRICE: {current_price}
 
 SL: {sl}
 
-TP: {tp}
+TP1: {tp1}
+TP2: {tp2}
+TP3: {tp3}
 
 CONFIDENCE: {confidence}%
 
-SESSION: {active_session}
+SESSION: {session}
+
+CONFIRMED:
+✓ HTF BIAS
+✓ POI
+✓ LTF POI TAP
+✓ LTF MSS
+✓ MICRO FVG / OB ENTRY
 
 HTF BIAS: {htf_bias}
 
+POI TYPE: {poi_type}
+
 LTF MSS: {ltf_mss}
+
+ENTRY MODEL:
+{entry_model}
+
+STATUS: READY FOR ENTRY
 """
+
+# =========================
+# SEND TELEGRAM ALERT
+# =========================
+
+send_telegram(msg)
     )
 
 # =========================================================

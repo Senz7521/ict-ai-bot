@@ -48,6 +48,8 @@ exchange = ccxt.bybit({
 SYMBOLS = [
     "BTC/USDT",
     "ETH/USDT",
+    "XRP/USDT"
+]
     
 
 

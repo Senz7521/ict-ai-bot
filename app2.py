@@ -17,7 +17,6 @@ import requests
 import plotly.graph_objects as go
 
 from datetime import datetime
-import random
 
 # =========================================================
 # PAGE CONFIG
@@ -61,7 +60,7 @@ st.markdown("""
     border-radius:16px;
     margin-bottom:15px;
     color:white;
-    font-size:19px;
+    font-size:18px;
     font-weight:bold;
     text-align:center;
     box-shadow:0px 0px 12px rgba(0,0,0,0.4);
@@ -482,10 +481,6 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     displacement_signal = displacement(ltf_df)
     pd_zone = pd_array(htf_4h)
 
-    # =====================================================
-    # LIVE TIME
-    # =====================================================
-
     current_time = datetime.now().strftime("%H:%M:%S")
     current_date = datetime.now().strftime("%d-%m-%Y")
 
@@ -570,7 +565,7 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
         )
 
     # =====================================================
-    # SESSION TIME BOXES
+    # SESSION TIMINGS
     # =====================================================
 
     st.subheader("SESSION TIMINGS")
@@ -690,31 +685,93 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
 
     profit = round(tp1 - entry,2)
 
-    e1,e2,e3,e4 = st.columns(4)
+    # =====================================================
+    # BIG PROFESSIONAL TRADE BOX
+    # =====================================================
 
-    with e1:
-        st.markdown(
-            f'<div class="box blue">ENTRY<br>{entry}</div>',
-            unsafe_allow_html=True
-        )
+    st.subheader("LIVE TRADE PANEL")
 
-    with e2:
-        st.markdown(
-            f'<div class="box red">STOP LOSS<br>{sl}</div>',
-            unsafe_allow_html=True
-        )
+    trade_date = datetime.now().strftime("%d-%m-%Y")
+    trade_time = datetime.now().strftime("%H:%M:%S")
 
-    with e3:
-        st.markdown(
-            f'<div class="box green">TAKE PROFIT<br>{tp1}</div>',
-            unsafe_allow_html=True
-        )
+    big_box = f"""
+    <div style="
+    background:linear-gradient(135deg,#141e30,#243b55);
+    padding:35px;
+    border-radius:20px;
+    border:2px solid #00c6ff;
+    margin-bottom:25px;
+    box-shadow:0px 0px 20px rgba(0,198,255,0.4);
+    ">
 
-    with e4:
-        st.markdown(
-            f'<div class="box purple">EST PROFIT<br>{profit}</div>',
-            unsafe_allow_html=True
-        )
+    <h1 style="
+    color:#00c6ff;
+    text-align:center;
+    margin-bottom:30px;
+    ">
+    SMART MONEY LIVE TRADE
+    </h1>
+
+    <div style="
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+    ">
+
+    <div class="box blue">
+    DATE<br><br>
+    {trade_date}
+    </div>
+
+    <div class="box purple">
+    TIME<br><br>
+    {trade_time}
+    </div>
+
+    <div class="box green">
+    PAIR<br><br>
+    {pair}
+    </div>
+
+    <div class="box yellow">
+    SESSION<br><br>
+    {session}
+    </div>
+
+    <div class="box blue">
+    ENTRY<br><br>
+    {entry}
+    </div>
+
+    <div class="box red">
+    STOP LOSS<br><br>
+    {sl}
+    </div>
+
+    <div class="box green">
+    TAKE PROFIT<br><br>
+    {tp1}
+    </div>
+
+    <div class="box purple">
+    AI CONFIDENCE<br><br>
+    {score}%
+    </div>
+
+    <div class="box orange">
+    EST PROFIT<br><br>
+    {profit}
+    </div>
+
+    </div>
+
+    </div>
+    """
+
+    st.markdown(
+        big_box,
+        unsafe_allow_html=True
+    )
 
     # =====================================================
     # TELEGRAM ALERT
@@ -742,82 +799,6 @@ SESSION : {session}
         send_telegram(signal)
 
         st.session_state.last_signal = signal
-
-    # =====================================================
-    # DAILY TRADE HISTORY
-    # =====================================================
-
-    st.subheader(f"DAILY TRADE HISTORY - {current_date}")
-
-    history1,history2,history3 = st.columns(3)
-
-    with history1:
-        st.markdown(
-            '''
-            <div class="box blue">
-            DAILY TRADES<br>
-            4
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-
-    with history2:
-        st.markdown(
-            '''
-            <div class="box green">
-            TP HIT<br>
-            3
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-
-    with history3:
-        st.markdown(
-            '''
-            <div class="box red">
-            SL HIT<br>
-            1
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-
-    st.dataframe(
-        pd.DataFrame({
-
-            "TIME":[
-                "09:15",
-                "11:20",
-                "14:10",
-                "18:05"
-            ],
-
-            "PAIR":[
-                "BTC",
-                "ETH",
-                "XAU",
-                "SOL"
-            ],
-
-            "RESULT":[
-                "TP",
-                "TP",
-                "SL",
-                "TP"
-            ],
-
-            "PROFIT":[
-                "+120",
-                "+90",
-                "-40",
-                "+150"
-            ]
-
-        }),
-        use_container_width=True
-    )
 
 else:
 

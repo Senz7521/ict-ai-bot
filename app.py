@@ -1,8 +1,8 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
-# FULL SMART MONEY CONCEPT VERSION
+# SMART MONEY CONCEPT VERSION
 # TOKYO + LONDON + NEW YORK
-# ALL BOX UI VERSION
+# FULL FINAL CLEAN VERSION
 # =========================================================
 
 # =========================================================
@@ -103,8 +103,12 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
-CHAT_ID = "7790207379"
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
+
+# TELEGRAM SPAM FIX
+if "last_signal" not in st.session_state:
+    st.session_state.last_signal = ""
 
 def send_telegram(message):
 
@@ -484,11 +488,23 @@ if (
         2
     )
 
+    tapped = False
+
+    if poi:
+
+        if poi["low"] <= current_price <= poi["high"]:
+            tapped = True
+
     mss = detect_mss(ltf_df,bias)
+
     micro = micro_mss(ltf_df,bias)
+
     fvg = detect_fvg(ltf_df,bias)
+
     sweep = liquidity_sweep(ltf_df)
+
     displacement_signal = displacement(ltf_df)
+
     pd_zone = pd_array(htf_4h)
 
     # =====================================================
@@ -505,11 +521,33 @@ if (
             open=ltf_df["open"],
             high=ltf_df["high"],
             low=ltf_df["low"],
-            close=ltf_df["close"]
+            close=ltf_df["close"],
+            name="PRICE"
         )
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    if poi:
+
+        fig.add_hline(
+            y=poi["high"],
+            line_color="yellow"
+        )
+
+        fig.add_hline(
+            y=poi["low"],
+            line_color="yellow"
+        )
+
+    fig.update_layout(
+        height=700,
+        template="plotly_dark",
+        xaxis_rangeslider_visible=False
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
     # =====================================================
     # TOP BOXES
@@ -550,193 +588,37 @@ if (
     h1,h2,h3 = st.columns(3)
 
     with h1:
+
+        color4h = "green"
+
+        if bias_4h == "BEARISH":
+            color4h = "red"
+
         st.markdown(
-            f'<div class="box green">4H BIAS<br>{bias_4h}</div>',
+            f'<div class="box {color4h}">4H BIAS<br>{bias_4h}</div>',
             unsafe_allow_html=True
         )
 
     with h2:
+
+        color1h = "green"
+
+        if bias_1h == "BEARISH":
+            color1h = "red"
+
         st.markdown(
-            f'<div class="box blue">1H BIAS<br>{bias_1h}</div>',
+            f'<div class="box {color1h}">1H BIAS<br>{bias_1h}</div>',
             unsafe_allow_html=True
         )
 
     with h3:
+
+        final_color = "green"
+
+        if bias == "BEARISH":
+            final_color = "red"
+
         st.markdown(
-            f'<div class="box purple">FINAL BIAS<br>{bias}</div>',
+            f'<div class="box {final_color}">FINAL BIAS<br>{bias}</div>',
             unsafe_allow_html=True
         )
-
-    # =====================================================
-    # SIGNAL BOXES
-    # =====================================================
-
-    st.markdown(
-        f'<div class="box yellow">LIQUIDITY SWEEP<br>{sweep}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="box green">LTF MSS<br>{mss}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="box purple">MICRO MSS<br>{micro}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="box blue">FVG<br>{fvg}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="box yellow">PD ARRAY<br>{pd_zone}</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="box red">DISPLACEMENT<br>{displacement_signal}</div>',
-        unsafe_allow_html=True
-    )
-
-    # =====================================================
-    # AI CONFIDENCE
-    # =====================================================
-
-    score = random.randint(70,95)
-
-    st.markdown(
-        f'<div class="box green">AI CONFIDENCE<br>{score}%</div>',
-        unsafe_allow_html=True
-    )
-
-    # =====================================================
-    # ENTRY MODEL
-    # =====================================================
-
-    st.subheader("ENTRY MODEL")
-
-    entry = current_price
-
-    tp1 = round(entry + 20,2)
-    tp2 = round(entry + 40,2)
-    tp3 = round(entry + 60,2)
-
-    sl = round(entry - 20,2)
-
-    signal = f"""
-
-PAIR : {pair}
-
-4H BIAS : {bias_4h}
-
-1H BIAS : {bias_1h}
-
-FINAL BIAS : {bias}
-
-ENTRY : {entry}
-
-SL : {sl}
-
-TP1 : {tp1}
-
-TP2 : {tp2}
-
-TP3 : {tp3}
-
-"""
-
-    st.success(signal)
-
-    send_telegram(signal)
-
-    # =====================================================
-    # SESSION GUIDE
-    # =====================================================
-
-    st.subheader("SESSION GUIDE")
-
-    g1,g2,g3 = st.columns(3)
-
-    with g1:
-        st.markdown(
-            '<div class="box blue">TOKYO SESSION<br>OBSERVATION / SCALP</div>',
-            unsafe_allow_html=True
-        )
-
-    with g2:
-        st.markdown(
-            '<div class="box green">LONDON SESSION<br>MAIN SETUP</div>',
-            unsafe_allow_html=True
-        )
-
-    with g3:
-        st.markdown(
-            '<div class="box red">NEW YORK SESSION<br>HIGH VOLATILITY</div>',
-            unsafe_allow_html=True
-        )
-
-    # =====================================================
-    # DASHBOARD
-    # =====================================================
-
-    st.subheader("TRADING DASHBOARD")
-
-    total_trades = 32
-    wins = 24
-    losses = 8
-
-    daily_win_rate = round(
-        (wins / total_trades) * 100,
-        2
-    )
-
-    monthly_profit = random.randint(2000,7000)
-
-    d1,d2,d3,d4 = st.columns(4)
-
-    with d1:
-        st.metric("TOTAL TRADES",total_trades)
-
-    with d2:
-        st.metric("TOTAL WINS",wins)
-
-    with d3:
-        st.metric("TOTAL LOSSES",losses)
-
-    with d4:
-        st.metric(
-            "DAILY WIN RATE",
-            f"{daily_win_rate}%"
-        )
-
-    st.markdown(
-        f'<div class="box green">MONTHLY PROFIT<br>${monthly_profit}</div>',
-        unsafe_allow_html=True
-    )
-
-    # =====================================================
-    # HISTORY
-    # =====================================================
-
-    st.subheader("TODAY TRADE HISTORY")
-
-    trade_data = pd.DataFrame({
-
-        "PAIR":["BTC","ETH","XAU","SOL"],
-        "TYPE":["BUY","SELL","BUY","SELL"],
-        "RESULT":["WIN","WIN","LOSS","WIN"],
-        "PROFIT":["+120","+90","-40","+150"]
-
-    })
-
-    st.dataframe(
-        trade_data,
-        use_container_width=True
-    )
-
-else:
-
-    st.error("DATA NOT LOADED")

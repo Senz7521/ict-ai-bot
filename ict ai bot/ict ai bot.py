@@ -1,5 +1,11 @@
 # =========================================================
-# ICT AI BOT PRO ULTRA
+# ICT AI BOT PRO MAX
+# LIVE CHART + GOLD CHART + TELEGRAM + STREAMLIT
+# EMA REMOVED
+# =========================================================
+
+# =========================================================
+# IMPORTS
 # =========================================================
 
 import streamlit as st
@@ -7,63 +13,37 @@ from streamlit_autorefresh import st_autorefresh
 
 import ccxt
 import pandas as pd
-import requests
+import plotly.graph_objects as go
 
+import requests
+import time
 from datetime import datetime
 
 # =========================================================
 # AUTO REFRESH
 # =========================================================
 
-st_autorefresh(interval=5000, key="refresh")
+st_autorefresh(interval=10000, key="refresh")
 
 # =========================================================
-# PAGE
+# PAGE CONFIG
 # =========================================================
 
 st.set_page_config(
-    page_title="ICT AI BOT PRO",
+    page_title="ICT AI BOT",
     layout="wide"
 )
 
-# =========================================================
-# STYLE
-# =========================================================
-
-st.markdown("""
-<style>
-
-.stApp{
-    background-color:#0f172a;
-    color:white;
-}
-
-[data-testid="stMetricValue"]{
-    color:#00ff88;
-}
-
-div.stButton > button{
-    background-color:#00ff88;
-    color:black;
-}
-
-</style>
-""", unsafe_allow_html=True)
+st.title("ICT AI BOT PRO MAX")
 
 # =========================================================
-# TITLE
-# =========================================================
-
-st.title("ICT AI BOT PRO")
-
-# =========================================================
-# TELEGRAM
+# TELEGRAM SETTINGS
 # =========================================================
 
 TOKEN = "YOUR_BOT_TOKEN"
 CHAT_ID = "YOUR_CHAT_ID"
 
-def send_telegram(message):
+def send_telegram(msg):
 
     try:
 
@@ -71,58 +51,66 @@ def send_telegram(message):
 
         data = {
             "chat_id": CHAT_ID,
-            "text": message
+            "text": msg
         }
 
         requests.post(url, data=data)
 
-    except:
-        pass
+    except Exception as e:
+        print("TELEGRAM ERROR:", e)
 
 # =========================================================
 # EXCHANGE
 # =========================================================
 
-exchange = ccxt.binance({
+exchange = ccxt.bybit({
+    "options": {
+        "defaultType": "future"
+    },
     "enableRateLimit": True
 })
+
+# =========================================================
+# SYMBOLS
+# =========================================================
+
+SYMBOLS = [
+    "BTC/USDT",
+    "ETH/USDT",
+    "XRP/USDT",
+    "SOL/USDT",
+    "1000PEPE/USDT",
+    "XAU/USD"
+]
 
 # =========================================================
 # SIDEBAR
 # =========================================================
 
-st.sidebar.title("PAIR SELECTOR")
+st.sidebar.title("SETTINGS")
 
-pair = st.sidebar.selectbox(
+selected_symbol = st.sidebar.selectbox(
     "SELECT PAIR",
-    [
-        "BTC/USDT",
-        "ETH/USDT",
-        "XRP/USDT",
-        "XAU/USD"
-    ]
+    SYMBOLS
 )
 
 timeframe = st.sidebar.selectbox(
-    "SELECT TIMEFRAME",
-    [
-        "1m",
-        "5m",
-        "15m",
-        "1h"
-    ]
+    "TIMEFRAME",
+    ["1m", "5m", "15m", "1h"],
+    index=2
 )
 
 # =========================================================
-# GET DATA
+# FETCH CANDLES
 # =========================================================
 
-def get_data(symbol, timeframe, limit=200):
+def get_candles(symbol, timeframe, limit=200):
 
     try:
 
         # GOLD FIX
         if symbol == "XAU/USD":
+
             symbol = "BTC/USDT"
 
         ohlcv = exchange.fetch_ohlcv(
@@ -143,16 +131,21 @@ def get_data(symbol, timeframe, limit=200):
             ]
         )
 
+        df["time"] = pd.to_datetime(
+            df["time"],
+            unit="ms"
+        )
+
         return df
 
     except Exception as e:
 
-        st.error(f"DATA ERROR: {e}")
+        st.error(f"CANDLE ERROR : {e}")
 
         return None
 
 # =========================================================
-# SESSION
+# SESSION FILTER
 # =========================================================
 
 def session_filter():
@@ -174,143 +167,97 @@ def session_filter():
 
 def get_htf_bias(df):
 
-    recent_high = df["high"].iloc[-5:].max()
-    old_high = df["high"].iloc[-20:-5].max()
+    recent_high = df["high"].iloc[-20:].max()
+    recent_low = df["low"].iloc[-20:].min()
 
-    recent_low = df["low"].iloc[-5:].min()
-    old_low = df["low"].iloc[-20:-5].min()
+    current_price = df["close"].iloc[-1]
 
-    if recent_high > old_high:
+    middle = (recent_high + recent_low) / 2
+
+    if current_price > middle:
         return "BULLISH"
 
-    elif recent_low < old_low:
+    elif current_price < middle:
         return "BEARISH"
 
     return "NEUTRAL"
 
 # =========================================================
-# POI
-# =========================================================
-
-def get_poi(df, bias):
-
-    if bias == "BULLISH":
-
-        return round(df["low"].iloc[-3], 2)
-
-    elif bias == "BEARISH":
-
-        return round(df["high"].iloc[-3], 2)
-
-    return None
-
-# =========================================================
-# POI TAP
-# =========================================================
-
-def poi_tapped(current_price, poi):
-
-    if poi is None:
-        return False
-
-    if abs(current_price - poi) <= 5:
-        return True
-
-    return False
-
-# =========================================================
-# SWEEP
-# =========================================================
-
-def liquidity_sweep(df):
-
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
-
-    current_high = df["high"].iloc[-1]
-    current_low = df["low"].iloc[-1]
-
-    if current_high > recent_high:
-
-        return {
-            "valid": True,
-            "type": "BUY SIDE LIQUIDITY TAKEN"
-        }
-
-    elif current_low < recent_low:
-
-        return {
-            "valid": True,
-            "type": "SELL SIDE LIQUIDITY TAKEN"
-        }
-
-    return {
-        "valid": False,
-        "type": "NO SWEEP"
-    }
-
-# =========================================================
-# MSS
+# MSS DETECTION
 # =========================================================
 
 def detect_mss(df, bias):
 
-    current = df["close"].iloc[-1]
-    prev = df["close"].iloc[-2]
+    current_close = df["close"].iloc[-1]
+
+    swing_high = df["high"].iloc[-5:-1].max()
+    swing_low = df["low"].iloc[-5:-1].min()
 
     if bias == "BULLISH":
 
-        if current > prev:
+        if current_close > swing_high:
 
-            return {
-                "valid": True,
-                "type": "BULLISH MSS"
-            }
+            return "BULLISH MSS"
 
-    elif bias == "BEARISH":
+    if bias == "BEARISH":
 
-        if current < prev:
+        if current_close < swing_low:
 
-            return {
-                "valid": True,
-                "type": "BEARISH MSS"
-            }
+            return "BEARISH MSS"
 
-    return {
-        "valid": False,
-        "type": "NO MSS"
-    }
+    return "NO MSS"
 
 # =========================================================
-# MICRO MSS
-# =========================================================
-
-def micro_mss(df, bias):
-
-    current = df["close"].iloc[-1]
-    prev = df["close"].iloc[-2]
-
-    if bias == "BULLISH" and current > prev:
-        return "MICRO BULLISH MSS"
-
-    elif bias == "BEARISH" and current < prev:
-        return "MICRO BEARISH MSS"
-
-    return "NO MICRO MSS"
-
-# =========================================================
-# FVG
+# FVG DETECTION
 # =========================================================
 
 def detect_fvg(df, bias):
 
-    if bias == "BULLISH":
-        return "BULLISH FVG"
+    for i in range(2, len(df)-1):
 
-    elif bias == "BEARISH":
-        return "BEARISH FVG"
+        # BULLISH FVG
+        if bias == "BULLISH":
+
+            if df["high"].iloc[i-2] < df["low"].iloc[i]:
+
+                return "BULLISH FVG"
+
+        # BEARISH FVG
+        elif bias == "BEARISH":
+
+            if df["low"].iloc[i-2] > df["high"].iloc[i]:
+
+                return "BEARISH FVG"
 
     return "NO FVG"
+
+# =========================================================
+# ORDER BLOCK
+# =========================================================
+
+def detect_ob(df, bias):
+
+    if bias == "BULLISH":
+
+        candle = df.iloc[-3]
+
+        return {
+            "type": "BULLISH OB",
+            "high": candle["high"],
+            "low": candle["low"]
+        }
+
+    elif bias == "BEARISH":
+
+        candle = df.iloc[-3]
+
+        return {
+            "type": "BEARISH OB",
+            "high": candle["high"],
+            "low": candle["low"]
+        }
+
+    return None
 
 # =========================================================
 # ENTRY MODEL
@@ -318,167 +265,207 @@ def detect_fvg(df, bias):
 
 def entry_model(df, bias):
 
-    current_price = df["close"].iloc[-1]
+    price = df["close"].iloc[-1]
 
     if bias == "BULLISH":
 
-        entry = current_price
-
-        sl = entry - 10
-
-        tp1 = entry + 10
-        tp2 = entry + 20
-        tp3 = entry + 35
+        return {
+            "ENTRY": "BUY",
+            "PRICE": round(price, 2),
+            "SL": round(price - 100, 2),
+            "TP": round(price + 300, 2)
+        }
 
     elif bias == "BEARISH":
 
-        entry = current_price
+        return {
+            "ENTRY": "SELL",
+            "PRICE": round(price, 2),
+            "SL": round(price + 100, 2),
+            "TP": round(price - 300, 2)
+        }
 
-        sl = entry + 10
-
-        tp1 = entry - 10
-        tp2 = entry - 20
-        tp3 = entry - 35
-
-    else:
-
-        return "NO ENTRY"
-
-    return f'''
-ICT AI BOT ALERT
-
-PAIR: {pair}
-
-TRADE TYPE: {bias}
-
-ENTRY PRICE: {entry:.2f}
-
-SL: {sl:.2f}
-
-TP1: {tp1:.2f}
-TP2: {tp2:.2f}
-TP3: {tp3:.2f}
-
-CONFIDENCE: 80%
-
-SESSION: {session_filter()}
-
-STATUS: READY FOR ENTRY
-'''
+    return None
 
 # =========================================================
-# LOAD DATA
+# GET DATA
 # =========================================================
 
-htf_df = get_data(pair, "1h")
-ltf_df = get_data(pair, timeframe)
+df = get_candles(selected_symbol, timeframe)
 
 # =========================================================
-# MAIN
+# DATA CHECK
 # =========================================================
 
-if htf_df is not None and ltf_df is not None:
-
-    bias = get_htf_bias(htf_df)
-
-    poi = get_poi(htf_df, bias)
-
-    current_price = round(
-        float(ltf_df["close"].iloc[-1]),
-        2
-    )
-
-    tapped = poi_tapped(current_price, poi)
-
-    sweep = liquidity_sweep(ltf_df)
-
-    mss = detect_mss(ltf_df, bias)
-
-    micro = micro_mss(ltf_df, bias)
-
-    fvg = detect_fvg(ltf_df, bias)
+if df is not None:
 
     # =====================================================
-    # MARKET
+    # SESSION
     # =====================================================
 
-    st.header("MARKET ANALYSIS")
-
-    st.write(f"PAIR: {pair}")
-
-    st.success(f"CURRENT PRICE: {current_price}")
-
-    st.write(f"SESSION: {session_filter()}")
-
-    st.write(f"LIQUIDITY: {sweep['type']}")
+    session = session_filter()
 
     # =====================================================
-    # AI REVIEW
+    # BIAS
     # =====================================================
 
-    st.header("AI REVIEW")
-
-    if (
-        tapped
-        and sweep["valid"]
-        and mss["valid"]
-    ):
-
-        st.success("READY FOR ENTRY")
-
-    else:
-
-        st.warning("Waiting for confirmation. No valid setup.")
+    bias = get_htf_bias(df)
 
     # =====================================================
-    # BOXES
+    # MSS
     # =====================================================
 
-    col1, col2 = st.columns(2)
+    mss = detect_mss(df, bias)
 
-    with col1:
+    # =====================================================
+    # FVG
+    # =====================================================
 
-        st.success(f"HTF BIAS\n\n{bias}")
+    fvg = detect_fvg(df, bias)
 
-    with col2:
+    # =====================================================
+    # ORDER BLOCK
+    # =====================================================
 
-        st.info(f"HTF POI\n\n{poi}")
-
-    st.warning(
-        f"HTF POI TAP\n\n{'TAPPED' if tapped else 'WAITING'}"
-    )
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-
-        st.success(f"LTF MSS\n\n{mss['type']}")
-
-    with col4:
-
-        st.info(f"FVG\n\n{fvg}")
-
-    st.success(f"MICRO MSS\n\n{micro}")
+    ob = detect_ob(df, bias)
 
     # =====================================================
     # ENTRY
     # =====================================================
 
+    entry = None
+
     if (
-        tapped
-        and sweep["valid"]
-        and mss["valid"]
+        "BULLISH" in bias
+        and "BULLISH" in mss
+        and "BULLISH" in fvg
     ):
 
-        entry = entry_model(
-            ltf_df,
-            bias
+        entry = entry_model(df, "BULLISH")
+
+    elif (
+        "BEARISH" in bias
+        and "BEARISH" in mss
+        and "BEARISH" in fvg
+    ):
+
+        entry = entry_model(df, "BEARISH")
+
+    # =====================================================
+    # LIVE CHART
+    # =====================================================
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Candlestick(
+            x=df["time"],
+            open=df["open"],
+            high=df["high"],
+            low=df["low"],
+            close=df["close"],
+            name="PRICE"
+        )
+    )
+
+    # =====================================================
+    # OB LINES
+    # =====================================================
+
+    if ob:
+
+        fig.add_hline(
+            y=ob["high"],
+            line_dash="dash"
         )
 
-        st.code(entry)
+        fig.add_hline(
+            y=ob["low"],
+            line_dash="dash"
+        )
 
-        send_telegram(entry)
+    # =====================================================
+    # CHART SETTINGS
+    # =====================================================
 
-else:
+    fig.update_layout(
+        height=700,
+        xaxis_rangeslider_visible=False
+    )
 
-    st.error("DATA NOT LOADED")
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # INFO BOX
+    # =====================================================
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("SESSION", session)
+    col2.metric("HTF BIAS", bias)
+    col3.metric("MSS", mss)
+
+    # =====================================================
+    # AI REVIEW
+    # =====================================================
+
+    st.subheader("AI REVIEW")
+
+    st.write(f"PAIR : {selected_symbol}")
+    st.write(f"TIMEFRAME : {timeframe}")
+    st.write(f"HTF BIAS : {bias}")
+    st.write(f"FVG : {fvg}")
+
+    if ob:
+
+        st.write(f"OB TYPE : {ob['type']}")
+        st.write(f"OB HIGH : {ob['high']}")
+        st.write(f"OB LOW : {ob['low']}")
+
+    # =====================================================
+    # FINAL ENTRY
+    # =====================================================
+
+    if entry:
+
+        st.success("ENTRY READY")
+
+        st.write(entry)
+
+        msg = f"""
+ICT AI BOT ALERT
+
+PAIR : {selected_symbol}
+
+ENTRY : {entry['ENTRY']}
+
+PRICE : {entry['PRICE']}
+
+SL : {entry['SL']}
+
+TP : {entry['TP']}
+
+SESSION : {session}
+
+BIAS : {bias}
+
+MSS : {mss}
+
+FVG : {fvg}
+"""
+
+        send_telegram(msg)
+
+    else:
+
+        st.warning("WAITING FOR CONFIRMATION")
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown("---")
+st.caption("ICT AI BOT PRO MAX")

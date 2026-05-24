@@ -612,24 +612,84 @@ STATUS: READY FOR ENTRY
 
     send_telegram(msg)
 
-# =========================
-# TELEGRAM ALERT MESSAGE
-# =========================
+# =========================================================
+# TELEGRAM ALERT
+# =========================================================
 
-msg = f"""
+if entry == "BUY" or entry == "SELL":
+
+    entry_price = round(last_close, 2)
+
+    # BUY SETUP
+    if entry == "BUY":
+
+        tp1 = round(entry_price + 10, 2)
+        tp2 = round(entry_price + 20, 2)
+        tp3 = round(entry_price + 35, 2)
+
+        sl = round(entry_price - 10, 2)
+
+        poi_type = "Bullish Order Block"
+        entry_model = "Micro Bullish FVG"
+
+    # SELL SETUP
+    else:
+
+        tp1 = round(entry_price - 10, 2)
+        tp2 = round(entry_price - 20, 2)
+        tp3 = round(entry_price - 35, 2)
+
+        sl = round(entry_price + 10, 2)
+
+        poi_type = "Bearish Order Block"
+        entry_model = "Micro Bearish FVG"
+
+    # TELEGRAM MESSAGE
+    msg = f"""
 ICT AI BOT ALERT
 
 PAIR: {selected_pair}
 
 TRADE TYPE: {entry}
 
-ENTRY PRICE: {last_close}
+ENTRY PRICE: {entry_price}
 
 SL: {sl}
 
 TP1: {tp1}
 TP2: {tp2}
 TP3: {tp3}
+
+CONFIDENCE: {confidence}%
+
+SESSION: {session}
+
+CONFIRMED:
+✓ HTF BIAS
+✓ POI
+✓ LTF POI TAP
+✓ LTF MSS
+✓ MICRO FVG / OB ENTRY
+
+HTF BIAS: {htf_bias}
+
+POI TYPE: {poi_type}
+
+LTF MSS: {ltf_mss}
+
+ENTRY MODEL:
+{entry_model}
+
+STATUS: READY FOR ENTRY
+"""
+
+    send_telegram(msg)
+
+else:
+
+    tp1 = 0
+    tp2 = 0
+    tp3 = 0
 
 CONFIDENCE: {confidence}%
 

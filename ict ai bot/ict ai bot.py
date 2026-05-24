@@ -330,7 +330,8 @@ def entry_model(df, bias):
 # MAIN LOOP
 # =========================================================
 while True:
-    try
+
+    try:
 
         # =================================================
         # GET DATA
@@ -428,170 +429,6 @@ while True:
         print("MSS BOX")
         print("==============================")
         print(mss)
-# =========================================================
-# DIRECTION SYNC LOGIC
-# =========================================================
-
-# HTF BIAS
-htf_bias = "NEUTRAL"
-
-if data['close'].iloc[-1] < data['ema_200'].iloc[-1]:
-    htf_bias = "BEARISH"
-
-elif data['close'].iloc[-1] > data['ema_200'].iloc[-1]:
-    htf_bias = "BULLISH"
-
-
-# =========================================================
-# BEARISH / BULLISH POI
-# =========================================================
-
-bearish_poi = None
-bullish_poi = None
-
-# Bearish Order Block
-for i in range(len(data)-5, len(data)-1):
-
-    if (
-        data['close'].iloc[i] < data['open'].iloc[i]
-        and data['high'].iloc[i] > data['high'].iloc[i-1]
-    ):
-        bearish_poi = data['high'].iloc[i]
-
-# Bullish Order Block
-for i in range(len(data)-5, len(data)-1):
-
-    if (
-        data['close'].iloc[i] > data['open'].iloc[i]
-        and data['low'].iloc[i] < data['low'].iloc[i-1]
-    ):
-        bullish_poi = data['low'].iloc[i]
-
-
-# =========================================================
-# HTF POI FILTER
-# =========================================================
-
-htf_poi = "NO POI"
-
-if htf_bias == "BEARISH":
-    htf_poi = bearish_poi
-
-elif htf_bias == "BULLISH":
-    htf_poi = bullish_poi
-
-
-# =========================================================
-# MSS LOGIC
-# =========================================================
-
-ltf_mss = "NO MSS"
-micro_mss = "NO MICRO MSS"
-
-recent_high = data['high'].iloc[-5:].max()
-recent_low = data['low'].iloc[-5:].min()
-
-current_price = data['close'].iloc[-1]
-
-# Bearish MSS
-if htf_bias == "BEARISH":
-
-    if current_price < recent_low:
-        ltf_mss = "BEARISH MSS"
-        micro_mss = "BEARISH MICRO MSS"
-
-# Bullish MSS
-elif htf_bias == "BULLISH":
-
-    if current_price > recent_high:
-        ltf_mss = "BULLISH MSS"
-        micro_mss = "BULLISH MICRO MSS"
-
-
-# =========================================================
-# FVG LOGIC
-# =========================================================
-
-fvg_type = "NO FVG"
-
-# Bearish FVG
-if htf_bias == "BEARISH":
-
-    for i in range(2, len(data)-1):
-
-        if data['low'].iloc[i-2] > data['high'].iloc[i]:
-
-            fvg_type = "BEARISH FVG"
-
-# Bullish FVG
-elif htf_bias == "BULLISH":
-
-    for i in range(2, len(data)-1):
-
-        if data['high'].iloc[i-2] < data['low'].iloc[i]:
-
-            fvg_type = "BULLISH FVG"
-
-
-# =========================================================
-# POI TAP
-# =========================================================
-
-poi_tap = "NO TAP"
-
-if htf_bias == "BEARISH" and bearish_poi:
-
-    if current_price >= bearish_poi - 2:
-        poi_tap = "BEARISH POI TAPPED"
-
-elif htf_bias == "BULLISH" and bullish_poi:
-
-    if current_price <= bullish_poi + 2:
-        poi_tap = "BULLISH POI TAPPED"
-
-
-# =========================================================
-# AI CONFIRMATION
-# =========================================================
-
-setup_ready = False
-
-if (
-    htf_bias == "BEARISH"
-    and "BEARISH" in ltf_mss
-    and "BEARISH" in micro_mss
-    and "BEARISH" in fvg_type
-):
-
-    setup_ready = True
-
-elif (
-    htf_bias == "BULLISH"
-    and "BULLISH" in ltf_mss
-    and "BULLISH" in micro_mss
-    and "BULLISH" in fvg_type
-):
-
-    setup_ready = True
-
-
-# =========================================================
-# STREAMLIT DISPLAY
-# =========================================================
-
-st.subheader("AI REVIEW")
-
-st.write(f"HTF BIAS : {htf_bias}")
-st.write(f"HTF POI : {htf_poi}")
-st.write(f"POI TAP : {poi_tap}")
-st.write(f"LTF MSS : {ltf_mss}")
-st.write(f"MICRO MSS : {micro_mss}")
-st.write(f"FVG : {fvg_type}")
-
-if setup_ready:
-    st.success("READY FOR ENTRY")
-else:
-    st.warning("WAITING FOR CONFIRMATION")
 
         # =================================================
         # FINAL ENTRY
@@ -630,5 +467,7 @@ else:
         time.sleep(10)
 
     except Exception as e:
-     print("\nERROR:", e)
+
+        print("\nERROR:", e)
+
         time.sleep(5)

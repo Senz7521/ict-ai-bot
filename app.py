@@ -623,7 +623,7 @@ PAIR: {selected_pair}
 
 TRADE TYPE: {entry}
 
-ENTRY PRICE: {current_price}
+ENTRY PRICE: {last_close}
 
 SL: {sl}
 

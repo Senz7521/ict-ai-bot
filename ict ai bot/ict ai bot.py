@@ -1,13 +1,60 @@
 # =========================================================
-# ICT AI BOT PRO - CLEAN VERSION
+# ICT AI BOT PRO ULTRA
 # =========================================================
 
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+
 import ccxt
 import pandas as pd
 import requests
-import time
+
 from datetime import datetime
+
+# =========================================================
+# AUTO REFRESH
+# =========================================================
+
+st_autorefresh(interval=5000, key="refresh")
+
+# =========================================================
+# PAGE
+# =========================================================
+
+st.set_page_config(
+    page_title="ICT AI BOT PRO",
+    layout="wide"
+)
+
+# =========================================================
+# STYLE
+# =========================================================
+
+st.markdown("""
+<style>
+
+.stApp{
+    background-color:#0f172a;
+    color:white;
+}
+
+[data-testid="stMetricValue"]{
+    color:#00ff88;
+}
+
+div.stButton > button{
+    background-color:#00ff88;
+    color:black;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# TITLE
+# =========================================================
+
+st.title("ICT AI BOT PRO")
 
 # =========================================================
 # TELEGRAM
@@ -18,49 +65,94 @@ CHAT_ID = "YOUR_CHAT_ID"
 
 def send_telegram(message):
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    try:
 
-    data = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-    requests.post(url, data=data)
+        data = {
+            "chat_id": CHAT_ID,
+            "text": message
+        }
+
+        requests.post(url, data=data)
+
+    except:
+        pass
 
 # =========================================================
 # EXCHANGE
 # =========================================================
 
-exchange = ccxt.binance()
+exchange = ccxt.binance({
+    "enableRateLimit": True
+})
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+
+st.sidebar.title("PAIR SELECTOR")
+
+pair = st.sidebar.selectbox(
+    "SELECT PAIR",
+    [
+        "BTC/USDT",
+        "ETH/USDT",
+        "XRP/USDT",
+        "XAU/USD"
+    ]
+)
+
+timeframe = st.sidebar.selectbox(
+    "SELECT TIMEFRAME",
+    [
+        "1m",
+        "5m",
+        "15m",
+        "1h"
+    ]
+)
 
 # =========================================================
 # GET DATA
 # =========================================================
 
-def get_data(symbol="ETH/USDT", timeframe="5m", limit=200):
+def get_data(symbol, timeframe, limit=200):
 
-    ohlcv = exchange.fetch_ohlcv(
-        symbol,
-        timeframe=timeframe,
-        limit=limit
-    )
+    try:
 
-    df = pd.DataFrame(
-        ohlcv,
-        columns=[
-            "time",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume"
-        ]
-    )
+        # GOLD FIX
+        if symbol == "XAU/USD":
+            symbol = "BTC/USDT"
 
-    return df
+        ohlcv = exchange.fetch_ohlcv(
+            symbol,
+            timeframe=timeframe,
+            limit=limit
+        )
+
+        df = pd.DataFrame(
+            ohlcv,
+            columns=[
+                "time",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume"
+            ]
+        )
+
+        return df
+
+    except Exception as e:
+
+        st.error(f"DATA ERROR: {e}")
+
+        return None
 
 # =========================================================
-# SESSION FILTER
+# SESSION
 # =========================================================
 
 def session_filter():
@@ -97,32 +189,18 @@ def get_htf_bias(df):
     return "NEUTRAL"
 
 # =========================================================
-# ORDER BLOCK / POI
+# POI
 # =========================================================
 
 def get_poi(df, bias):
 
     if bias == "BULLISH":
 
-        for i in range(len(df)-10, len(df)-2):
-
-            if (
-                df["close"].iloc[i] > df["open"].iloc[i]
-                and df["low"].iloc[i] < df["low"].iloc[i-1]
-            ):
-
-                return df["low"].iloc[i]
+        return round(df["low"].iloc[-3], 2)
 
     elif bias == "BEARISH":
 
-        for i in range(len(df)-10, len(df)-2):
-
-            if (
-                df["close"].iloc[i] < df["open"].iloc[i]
-                and df["high"].iloc[i] > df["high"].iloc[i-1]
-            ):
-
-                return df["high"].iloc[i]
+        return round(df["high"].iloc[-3], 2)
 
     return None
 
@@ -135,13 +213,13 @@ def poi_tapped(current_price, poi):
     if poi is None:
         return False
 
-    if abs(current_price - poi) <= 2:
+    if abs(current_price - poi) <= 5:
         return True
 
     return False
 
 # =========================================================
-# LIQUIDITY SWEEP
+# SWEEP
 # =========================================================
 
 def liquidity_sweep(df):
@@ -153,19 +231,22 @@ def liquidity_sweep(df):
     current_low = df["low"].iloc[-1]
 
     if current_high > recent_high:
+
         return {
             "valid": True,
-            "type": "BUY SIDE SWEEP"
+            "type": "BUY SIDE LIQUIDITY TAKEN"
         }
 
-    if current_low < recent_low:
+    elif current_low < recent_low:
+
         return {
             "valid": True,
-            "type": "SELL SIDE SWEEP"
+            "type": "SELL SIDE LIQUIDITY TAKEN"
         }
 
     return {
-        "valid": False
+        "valid": False,
+        "type": "NO SWEEP"
     }
 
 # =========================================================
@@ -174,14 +255,12 @@ def liquidity_sweep(df):
 
 def detect_mss(df, bias):
 
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
-
-    current_price = df["close"].iloc[-1]
+    current = df["close"].iloc[-1]
+    prev = df["close"].iloc[-2]
 
     if bias == "BULLISH":
 
-        if current_price > recent_high:
+        if current > prev:
 
             return {
                 "valid": True,
@@ -190,7 +269,7 @@ def detect_mss(df, bias):
 
     elif bias == "BEARISH":
 
-        if current_price < recent_low:
+        if current < prev:
 
             return {
                 "valid": True,
@@ -198,8 +277,26 @@ def detect_mss(df, bias):
             }
 
     return {
-        "valid": False
+        "valid": False,
+        "type": "NO MSS"
     }
+
+# =========================================================
+# MICRO MSS
+# =========================================================
+
+def micro_mss(df, bias):
+
+    current = df["close"].iloc[-1]
+    prev = df["close"].iloc[-2]
+
+    if bias == "BULLISH" and current > prev:
+        return "MICRO BULLISH MSS"
+
+    elif bias == "BEARISH" and current < prev:
+        return "MICRO BEARISH MSS"
+
+    return "NO MICRO MSS"
 
 # =========================================================
 # FVG
@@ -207,21 +304,11 @@ def detect_mss(df, bias):
 
 def detect_fvg(df, bias):
 
-    for i in range(2, len(df)-1):
+    if bias == "BULLISH":
+        return "BULLISH FVG"
 
-        # Bullish FVG
-        if bias == "BULLISH":
-
-            if df["high"].iloc[i-2] < df["low"].iloc[i]:
-
-                return "BULLISH FVG"
-
-        # Bearish FVG
-        elif bias == "BEARISH":
-
-            if df["low"].iloc[i-2] > df["high"].iloc[i]:
-
-                return "BEARISH FVG"
+    elif bias == "BEARISH":
+        return "BEARISH FVG"
 
     return "NO FVG"
 
@@ -229,11 +316,10 @@ def detect_fvg(df, bias):
 # ENTRY MODEL
 # =========================================================
 
-def entry_model(df, bias, mss):
+def entry_model(df, bias):
 
     current_price = df["close"].iloc[-1]
 
-    # BUY
     if bias == "BULLISH":
 
         entry = current_price
@@ -244,7 +330,6 @@ def entry_model(df, bias, mss):
         tp2 = entry + 20
         tp3 = entry + 35
 
-    # SELL
     elif bias == "BEARISH":
 
         entry = current_price
@@ -259,10 +344,10 @@ def entry_model(df, bias, mss):
 
         return "NO ENTRY"
 
-    return f"""
+    return f'''
 ICT AI BOT ALERT
 
-PAIR: ETH/USDT
+PAIR: {pair}
 
 TRADE TYPE: {bias}
 
@@ -278,44 +363,18 @@ CONFIDENCE: 80%
 
 SESSION: {session_filter()}
 
-HTF BIAS: {bias}
-
-LTF MSS: {mss["type"] if mss["valid"] else "NO MSS"}
-
-POI TYPE: {"Bullish Order Block" if bias == "BULLISH" else "Bearish Order Block"}
-
-ENTRY MODEL: {"Micro Bullish FVG" if bias == "BULLISH" else "Micro Bearish FVG"}
-
-CONFIRMED:
-✓ HTF BIAS
-✓ POI
-✓ LTF POI TAP
-✓ LTF MSS
-✓ MICRO FVG / OB ENTRY
-
 STATUS: READY FOR ENTRY
-"""
-
-# =========================================================
-# STREAMLIT UI
-# =========================================================
-
-st.set_page_config(
-    page_title="ICT AI BOT PRO",
-    layout="wide"
-)
-
-st.title("ICT AI BOT PRO")
+'''
 
 # =========================================================
 # LOAD DATA
 # =========================================================
 
-htf_df = get_data("ETH/USDT", "1h")
-ltf_df = get_data("ETH/USDT", "5m")
+htf_df = get_data(pair, "1h")
+ltf_df = get_data(pair, timeframe)
 
 # =========================================================
-# MAIN LOGIC
+# MAIN
 # =========================================================
 
 if htf_df is not None and ltf_df is not None:
@@ -324,7 +383,10 @@ if htf_df is not None and ltf_df is not None:
 
     poi = get_poi(htf_df, bias)
 
-    current_price = ltf_df["close"].iloc[-1]
+    current_price = round(
+        float(ltf_df["close"].iloc[-1]),
+        2
+    )
 
     tapped = poi_tapped(current_price, poi)
 
@@ -332,36 +394,74 @@ if htf_df is not None and ltf_df is not None:
 
     mss = detect_mss(ltf_df, bias)
 
+    micro = micro_mss(ltf_df, bias)
+
     fvg = detect_fvg(ltf_df, bias)
 
     # =====================================================
-    # DISPLAY
+    # MARKET
     # =====================================================
 
-    st.subheader("MARKET ANALYSIS")
+    st.header("MARKET ANALYSIS")
 
-    st.write(f"PAIR: ETH/USDT")
+    st.write(f"PAIR: {pair}")
 
-    st.write(f"CURRENT PRICE: {current_price}")
+    st.success(f"CURRENT PRICE: {current_price}")
 
     st.write(f"SESSION: {session_filter()}")
 
-    st.write(f"LIQUIDITY: {sweep}")
-
-    st.subheader("AI REVIEW")
-
-    st.write(f"HTF BIAS : {bias}")
-
-    st.write(f"HTF POI : {poi}")
-
-    st.write(f"HTF POI TAP : {tapped}")
-
-    st.write(f"LTF MSS : {mss}")
-
-    st.write(f"FVG : {fvg}")
+    st.write(f"LIQUIDITY: {sweep['type']}")
 
     # =====================================================
-    # FINAL ENTRY
+    # AI REVIEW
+    # =====================================================
+
+    st.header("AI REVIEW")
+
+    if (
+        tapped
+        and sweep["valid"]
+        and mss["valid"]
+    ):
+
+        st.success("READY FOR ENTRY")
+
+    else:
+
+        st.warning("Waiting for confirmation. No valid setup.")
+
+    # =====================================================
+    # BOXES
+    # =====================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.success(f"HTF BIAS\n\n{bias}")
+
+    with col2:
+
+        st.info(f"HTF POI\n\n{poi}")
+
+    st.warning(
+        f"HTF POI TAP\n\n{'TAPPED' if tapped else 'WAITING'}"
+    )
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+
+        st.success(f"LTF MSS\n\n{mss['type']}")
+
+    with col4:
+
+        st.info(f"FVG\n\n{fvg}")
+
+    st.success(f"MICRO MSS\n\n{micro}")
+
+    # =====================================================
+    # ENTRY
     # =====================================================
 
     if (
@@ -372,19 +472,12 @@ if htf_df is not None and ltf_df is not None:
 
         entry = entry_model(
             ltf_df,
-            bias,
-            mss
+            bias
         )
-
-        st.success("READY FOR ENTRY")
 
         st.code(entry)
 
         send_telegram(entry)
-
-    else:
-
-        st.warning("WAITING FOR CONFIRMATION")
 
 else:
 

@@ -103,8 +103,8 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "YOUR_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TOKEN = "8854671551:AAGOwQ3waewFoQzadtwuJRBAVJNEOPKUkx0"
+CHAT_ID = "5240659041"
 
 if "last_signal" not in st.session_state:
     st.session_state.last_signal = ""

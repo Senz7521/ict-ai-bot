@@ -1,7 +1,11 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
-# LONDON + NEW YORK SESSION ONLY
-# LIVE CHART ADDED
+# REAL ICT STRUCTURE VERSION
+# LIVE CHART + TELEGRAM + SESSION FILTER
+# =========================================================
+
+# =========================================================
+# IMPORTS
 # =========================================================
 
 import streamlit as st
@@ -98,8 +102,8 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
-CHAT_ID = "7790207379"
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 def send_telegram(message):
 
@@ -146,13 +150,12 @@ pair = st.sidebar.selectbox(
     ]
 )
 
-timeframe = st.sidebar.selectbox(
-    "SELECT TIMEFRAME",
+ltf_timeframe = st.sidebar.selectbox(
+    "SELECT LTF",
     [
         "1m",
         "5m",
-        "15m",
-        "1h"
+        "15m"
     ]
 )
 
@@ -218,24 +221,37 @@ def session_filter():
     elif 12 <= utc_hour <= 16:
         return "NEW YORK SESSION"
 
-    else:
-        return "NO TRADE SESSION"
+    return "NO TRADE SESSION"
 
 # =========================================================
-# HTF BIAS
+# REAL ICT HTF BIAS
 # =========================================================
 
 def get_htf_bias(df):
 
-    ema50 = df["close"].rolling(50).mean().iloc[-1]
+    swing_high = df["high"].iloc[-15:-5].max()
+    swing_low = df["low"].iloc[-15:-5].min()
 
-    current = df["close"].iloc[-1]
+    current_close = df["close"].iloc[-1]
 
-    if current > ema50:
-        return "BULLISH"
+    recent_high = df["high"].iloc[-5:].max()
+    recent_low = df["low"].iloc[-5:].min()
 
-    elif current < ema50:
+    # BEARISH STRUCTURE
+    if (
+        current_close < swing_low
+        and recent_low < swing_low
+    ):
+
         return "BEARISH"
+
+    # BULLISH STRUCTURE
+    elif (
+        current_close > swing_high
+        and recent_high > swing_high
+    ):
+
+        return "BULLISH"
 
     return "NEUTRAL"
 
@@ -245,18 +261,22 @@ def get_htf_bias(df):
 
 def get_poi(df, bias):
 
+    candle = df.iloc[-5]
+
     if bias == "BULLISH":
 
         return {
-            "type":"BULLISH POI",
-            "value":round(df["low"].iloc[-10:].min(),2)
+            "type":"BULLISH OB",
+            "high":round(candle["high"],2),
+            "low":round(candle["low"],2)
         }
 
     elif bias == "BEARISH":
 
         return {
-            "type":"BEARISH POI",
-            "value":round(df["high"].iloc[-10:].max(),2)
+            "type":"BEARISH OB",
+            "high":round(candle["high"],2),
+            "low":round(candle["low"],2)
         }
 
     return None
@@ -270,7 +290,7 @@ def poi_tapped(price, poi):
     if poi is None:
         return False
 
-    if abs(price - poi["value"]) <= 20:
+    if poi["low"] <= price <= poi["high"]:
         return True
 
     return False
@@ -281,16 +301,20 @@ def poi_tapped(price, poi):
 
 def detect_mss(df, bias):
 
-    high = df["high"].iloc[-5:].max()
-    low = df["low"].iloc[-5:].min()
+    current_close = df["close"].iloc[-1]
 
-    current = df["close"].iloc[-1]
+    swing_high = df["high"].iloc[-5:-1].max()
+    swing_low = df["low"].iloc[-5:-1].min()
 
-    if bias == "BULLISH" and current > high:
-        return "BULLISH MSS"
+    if bias == "BULLISH":
 
-    elif bias == "BEARISH" and current < low:
-        return "BEARISH MSS"
+        if current_close > swing_high:
+            return "BULLISH MSS"
+
+    elif bias == "BEARISH":
+
+        if current_close < swing_low:
+            return "BEARISH MSS"
 
     return "NO MSS"
 
@@ -300,14 +324,18 @@ def detect_mss(df, bias):
 
 def micro_mss(df, bias):
 
-    last = df["close"].iloc[-1]
-    prev = df["close"].iloc[-2]
+    last_close = df["close"].iloc[-1]
+    prev_close = df["close"].iloc[-2]
 
-    if bias == "BULLISH" and last > prev:
-        return "MICRO BULLISH MSS"
+    if bias == "BULLISH":
 
-    elif bias == "BEARISH" and last < prev:
-        return "MICRO BEARISH MSS"
+        if last_close > prev_close:
+            return "MICRO BULLISH MSS"
+
+    elif bias == "BEARISH":
+
+        if last_close < prev_close:
+            return "MICRO BEARISH MSS"
 
     return "NO MICRO MSS"
 
@@ -319,14 +347,18 @@ def detect_fvg(df, bias):
 
     for i in range(2, len(df)-1):
 
+        # BULLISH FVG
         if bias == "BULLISH":
 
             if df["high"].iloc[i-2] < df["low"].iloc[i]:
+
                 return "BULLISH FVG"
 
+        # BEARISH FVG
         elif bias == "BEARISH":
 
             if df["low"].iloc[i-2] > df["high"].iloc[i]:
+
                 return "BEARISH FVG"
 
     return "NO FVG"
@@ -335,8 +367,9 @@ def detect_fvg(df, bias):
 # LOAD DATA
 # =========================================================
 
-htf_df = get_data(symbol, "1h")
-ltf_df = get_data(symbol, timeframe)
+htf_df = get_data(symbol, "4h")
+
+ltf_df = get_data(symbol, ltf_timeframe)
 
 # =========================================================
 # MAIN
@@ -345,7 +378,7 @@ ltf_df = get_data(symbol, timeframe)
 if htf_df is not None and ltf_df is not None:
 
     # =====================================================
-    # SESSION CHECK
+    # SESSION
     # =====================================================
 
     session = session_filter()
@@ -367,9 +400,9 @@ if htf_df is not None and ltf_df is not None:
 
     mss = detect_mss(ltf_df, bias)
 
-    fvg = detect_fvg(ltf_df, bias)
-
     micro = micro_mss(ltf_df, bias)
+
+    fvg = detect_fvg(ltf_df, bias)
 
     # =====================================================
     # LIVE CHART
@@ -390,11 +423,17 @@ if htf_df is not None and ltf_df is not None:
         )
     )
 
-    # POI LINE
+    # HTF POI ZONE
     if poi:
 
         fig.add_hline(
-            y=poi["value"],
+            y=poi["high"],
+            line_dash="dash",
+            line_color="yellow"
+        )
+
+        fig.add_hline(
+            y=poi["low"],
             line_dash="dash",
             line_color="yellow"
         )
@@ -443,35 +482,27 @@ if htf_df is not None and ltf_df is not None:
 
     st.subheader("AI REVIEW")
 
+    # HTF
     col1,col2 = st.columns(2)
 
-    # HTF BIAS
     with col1:
 
-        color = "green"
+        bias_color = "green"
 
         if bias == "BEARISH":
-            color = "red"
+            bias_color = "red"
 
         st.markdown(
-            f'<div class="box {color}">HTF BIAS<br>{bias}</div>',
+            f'<div class="box {bias_color}">HTF BIAS<br>{bias}</div>',
             unsafe_allow_html=True
         )
 
-    # HTF POI
     with col2:
 
         if poi:
 
             st.markdown(
-                f'<div class="box blue">HTF POI<br>{poi["value"]}</div>',
-                unsafe_allow_html=True
-            )
-
-        else:
-
-            st.markdown(
-                f'<div class="box blue">HTF POI<br>NO POI</div>',
+                f'<div class="box blue">HTF POI<br>{poi["type"]}<br>{poi["low"]} - {poi["high"]}</div>',
                 unsafe_allow_html=True
             )
 
@@ -558,55 +589,68 @@ if htf_df is not None and ltf_df is not None:
         session == "LONDON SESSION"
         or session == "NEW YORK SESSION"
     ):
-
         allow_trade = True
 
-    if allow_trade and tapped:
+    # =====================================================
+    # FINAL ENTRY
+    # =====================================================
 
+    if (
+        allow_trade
+        and tapped
+        and confidence >= 90
+    ):
+
+        # BUY
         if bias == "BULLISH":
 
             entry = current_price
-            sl = entry - 20
-            tp1 = entry + 20
-            tp2 = entry + 40
-            tp3 = entry + 60
 
+            sl = round(entry - 20,2)
+
+            tp1 = round(entry + 20,2)
+            tp2 = round(entry + 40,2)
+            tp3 = round(entry + 60,2)
+
+        # SELL
         elif bias == "BEARISH":
 
             entry = current_price
-            sl = entry + 20
-            tp1 = entry - 20
-            tp2 = entry - 40
-            tp3 = entry - 60
+
+            sl = round(entry + 20,2)
+
+            tp1 = round(entry - 20,2)
+            tp2 = round(entry - 40,2)
+            tp3 = round(entry - 60,2)
 
         signal = f"""
 ICT AI BOT ALERT
 
-PAIR: {pair}
+PAIR : {pair}
 
-TRADE TYPE: {bias}
+TRADE TYPE : {bias}
 
-ENTRY: {entry}
+ENTRY : {entry}
 
-SL: {sl}
+SL : {sl}
 
-TP1: {tp1}
+TP1 : {tp1}
 
-TP2: {tp2}
+TP2 : {tp2}
 
-TP3: {tp3}
+TP3 : {tp3}
 
-SESSION: {session}
+SESSION : {session}
 
-HTF BIAS: {bias}
+HTF BIAS : {bias}
 
-LTF MSS: {mss}
+LTF MSS : {mss}
 
-FVG: {fvg}
+FVG : {fvg}
 
-MICRO MSS: {micro}
+MICRO MSS : {micro}
 
-CONFIDENCE: {confidence}%
+CONFIDENCE : {confidence}%
 """
 
         st.success(signal)
@@ -617,7 +661,7 @@ CONFIDENCE: {confidence}%
     else:
 
         st.warning(
-            "NO TRADE - WAITING FOR LONDON OR NEW YORK SESSION"
+            "NO VALID ICT ENTRY"
         )
 
     # =====================================================
@@ -633,7 +677,7 @@ CONFIDENCE: {confidence}%
         st.success(f"YOU : {msg}")
 
     # =====================================================
-    # STATS
+    # TODAY STATS
     # =====================================================
 
     st.subheader("TODAY STATS")

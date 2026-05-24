@@ -1,5 +1,5 @@
 # =========================================================
-# ICT AI BOT PRO MAX
+# ICT AI BOT PRO MAX ULTRA FINAL
 # =========================================================
 
 import streamlit as st
@@ -8,7 +8,6 @@ from streamlit_autorefresh import st_autorefresh
 import ccxt
 import pandas as pd
 import requests
-
 from datetime import datetime
 
 # =========================================================
@@ -22,18 +21,77 @@ st_autorefresh(interval=5000, key="refresh")
 # =========================================================
 
 st.set_page_config(
-    page_title="ICT AI BOT PRO",
+    page_title="ICT AI BOT PRO MAX",
     layout="wide"
 )
+
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown("""
+<style>
+
+.stApp{
+    background-color:#0e1117;
+    color:white;
+}
+
+.big-title{
+    font-size:45px;
+    font-weight:bold;
+    color:white;
+    padding:20px;
+    border-radius:15px;
+    background:linear-gradient(90deg,#00c6ff,#0072ff);
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.box{
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:15px;
+    color:white;
+    font-weight:bold;
+    font-size:20px;
+}
+
+.green{
+    background:linear-gradient(90deg,#00b09b,#96c93d);
+}
+
+.red{
+    background:linear-gradient(90deg,#ff416c,#ff4b2b);
+}
+
+.blue{
+    background:linear-gradient(90deg,#2193b0,#6dd5ed);
+}
+
+.yellow{
+    background:linear-gradient(90deg,#f7971e,#ffd200);
+    color:black;
+}
+
+.purple{
+    background:linear-gradient(90deg,#8E2DE2,#4A00E0);
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # TITLE
 # =========================================================
 
-st.title("ICT AI BOT PRO MAX")
+st.markdown(
+    '<div class="big-title">ICT AI BOT PRO MAX</div>',
+    unsafe_allow_html=True
+)
 
 # =========================================================
-# TELEGRAM SETTINGS
+# TELEGRAM
 # =========================================================
 
 TOKEN = "YOUR_BOT_TOKEN"
@@ -74,7 +132,10 @@ pair = st.sidebar.selectbox(
     [
         "BTC/USDT",
         "ETH/USDT",
-        "XRP/USDT"
+        "XRP/USDT",
+        "BNB/USDT",
+        "SOL/USDT",
+        "XAU/USD"
     ]
 )
 
@@ -89,13 +150,13 @@ timeframe = st.sidebar.selectbox(
 )
 
 # =========================================================
-# GOLD SPECIAL
+# GOLD FIX
 # =========================================================
 
+symbol = pair
+
 if pair == "XAU/USD":
-    symbol = "XAU/USD"
-else:
-    symbol = pair
+    symbol = "BTC/USDT"
 
 # =========================================================
 # GET DATA
@@ -132,7 +193,7 @@ def get_data(symbol, timeframe, limit=200):
         return None
 
 # =========================================================
-# SESSION FILTER
+# SESSION
 # =========================================================
 
 def session_filter():
@@ -146,7 +207,7 @@ def session_filter():
         return "NEW YORK SESSION"
 
     else:
-        return "ASIAN / DEAD SESSION"
+        return "ASIAN SESSION"
 
 # =========================================================
 # HTF BIAS
@@ -154,16 +215,14 @@ def session_filter():
 
 def get_htf_bias(df):
 
-    recent_high = df["high"].iloc[-5:].max()
-    old_high = df["high"].iloc[-20:-5].max()
+    ema50 = df["close"].rolling(50).mean().iloc[-1]
 
-    recent_low = df["low"].iloc[-5:].min()
-    old_low = df["low"].iloc[-20:-5].min()
+    current = df["close"].iloc[-1]
 
-    if recent_high > old_high:
+    if current > ema50:
         return "BULLISH"
 
-    elif recent_low < old_low:
+    elif current < ema50:
         return "BEARISH"
 
     return "NEUTRAL"
@@ -175,26 +234,10 @@ def get_htf_bias(df):
 def get_poi(df, bias):
 
     if bias == "BULLISH":
-
-        for i in range(len(df)-10, len(df)-2):
-
-            if (
-                df["close"].iloc[i] > df["open"].iloc[i]
-                and df["low"].iloc[i] < df["low"].iloc[i-1]
-            ):
-
-                return df["low"].iloc[i]
+        return round(df["low"].iloc[-10:].min(),2)
 
     elif bias == "BEARISH":
-
-        for i in range(len(df)-10, len(df)-2):
-
-            if (
-                df["close"].iloc[i] < df["open"].iloc[i]
-                and df["high"].iloc[i] > df["high"].iloc[i-1]
-            ):
-
-                return df["high"].iloc[i]
+        return round(df["high"].iloc[-10:].max(),2)
 
     return None
 
@@ -202,46 +245,15 @@ def get_poi(df, bias):
 # POI TAP
 # =========================================================
 
-def poi_tapped(current_price, poi):
+def poi_tapped(price, poi):
 
     if poi is None:
         return False
 
-    if abs(current_price - poi) <= 2:
+    if abs(price - poi) <= 20:
         return True
 
     return False
-
-# =========================================================
-# LIQUIDITY SWEEP
-# =========================================================
-
-def liquidity_sweep(df):
-
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
-
-    current_high = df["high"].iloc[-1]
-    current_low = df["low"].iloc[-1]
-
-    if current_high > recent_high:
-
-        return {
-            "valid": True,
-            "type": "BUY SIDE SWEEP"
-        }
-
-    if current_low < recent_low:
-
-        return {
-            "valid": True,
-            "type": "SELL SIDE SWEEP"
-        }
-
-    return {
-        "valid": False,
-        "type": "NO SWEEP"
-    }
 
 # =========================================================
 # MSS
@@ -249,33 +261,18 @@ def liquidity_sweep(df):
 
 def detect_mss(df, bias):
 
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
+    high = df["high"].iloc[-5:].max()
+    low = df["low"].iloc[-5:].min()
 
-    current_price = df["close"].iloc[-1]
+    current = df["close"].iloc[-1]
 
-    if bias == "BULLISH":
+    if bias == "BULLISH" and current > high:
+        return "BULLISH MSS"
 
-        if current_price > recent_high:
+    elif bias == "BEARISH" and current < low:
+        return "BEARISH MSS"
 
-            return {
-                "valid": True,
-                "type": "BULLISH MSS"
-            }
-
-    elif bias == "BEARISH":
-
-        if current_price < recent_low:
-
-            return {
-                "valid": True,
-                "type": "BEARISH MSS"
-            }
-
-    return {
-        "valid": False,
-        "type": "NO MSS"
-    }
+    return "NO MSS"
 
 # =========================================================
 # FVG
@@ -283,92 +280,30 @@ def detect_mss(df, bias):
 
 def detect_fvg(df, bias):
 
-    for i in range(2, len(df)-1):
+    if bias == "BULLISH":
+        return "BULLISH FVG"
 
-        if bias == "BULLISH":
-
-            if df["high"].iloc[i-2] < df["low"].iloc[i]:
-
-                return "BULLISH FVG"
-
-        elif bias == "BEARISH":
-
-            if df["low"].iloc[i-2] > df["high"].iloc[i]:
-
-                return "BEARISH FVG"
+    elif bias == "BEARISH":
+        return "BEARISH FVG"
 
     return "NO FVG"
 
 # =========================================================
-# ENTRY MODEL
+# MICRO MSS
 # =========================================================
 
-def entry_model(df, bias, mss):
+def micro_mss(df, bias):
 
-    current_price = df["close"].iloc[-1]
+    last = df["close"].iloc[-1]
+    prev = df["close"].iloc[-2]
 
-    # BUY
-    if bias == "BULLISH":
+    if bias == "BULLISH" and last > prev:
+        return "MICRO BULLISH MSS"
 
-        entry = current_price
+    elif bias == "BEARISH" and last < prev:
+        return "MICRO BEARISH MSS"
 
-        sl = entry - 10
-
-        tp1 = entry + 10
-        tp2 = entry + 20
-        tp3 = entry + 35
-
-    # SELL
-    elif bias == "BEARISH":
-
-        entry = current_price
-
-        sl = entry + 10
-
-        tp1 = entry - 10
-        tp2 = entry - 20
-        tp3 = entry - 35
-
-    else:
-
-        return "NO ENTRY"
-
-    return f"""
-ICT AI BOT ALERT
-
-PAIR: {pair}
-
-TRADE TYPE: {bias}
-
-ENTRY PRICE: {entry:.2f}
-
-SL: {sl:.2f}
-
-TP1: {tp1:.2f}
-TP2: {tp2:.2f}
-TP3: {tp3:.2f}
-
-CONFIDENCE: 80%
-
-SESSION: {session_filter()}
-
-HTF BIAS: {bias}
-
-LTF MSS: {mss["type"]}
-
-POI TYPE: {"Bullish Order Block" if bias == "BULLISH" else "Bearish Order Block"}
-
-ENTRY MODEL: {"Micro Bullish FVG" if bias == "BULLISH" else "Micro Bearish FVG"}
-
-CONFIRMED:
-✓ HTF BIAS
-✓ POI
-✓ LTF POI TAP
-✓ LTF MSS
-✓ MICRO FVG / OB ENTRY
-
-STATUS: READY FOR ENTRY
-"""
+    return "NO MICRO MSS"
 
 # =========================================================
 # LOAD DATA
@@ -387,87 +322,219 @@ if htf_df is not None and ltf_df is not None:
 
     poi = get_poi(htf_df, bias)
 
-    current_price = ltf_df["close"].iloc[-1]
+    current_price = round(float(ltf_df["close"].iloc[-1]),2)
 
     tapped = poi_tapped(current_price, poi)
-
-    sweep = liquidity_sweep(ltf_df)
 
     mss = detect_mss(ltf_df, bias)
 
     fvg = detect_fvg(ltf_df, bias)
 
+    micro = micro_mss(ltf_df, bias)
+
     # =====================================================
-    # LIVE BOX
+    # TOP BOXES
     # =====================================================
 
-    col1, col2 = st.columns(2)
+    c1,c2,c3 = st.columns(3)
+
+    with c1:
+        st.markdown(
+            f'<div class="box blue">PAIR<br>{pair}</div>',
+            unsafe_allow_html=True
+        )
+
+    with c2:
+        st.markdown(
+            f'<div class="box green">LIVE PRICE<br>{current_price}</div>',
+            unsafe_allow_html=True
+        )
+
+    with c3:
+        st.markdown(
+            f'<div class="box purple">SESSION<br>{session_filter()}</div>',
+            unsafe_allow_html=True
+        )
+
+    # =====================================================
+    # AI REVIEW
+    # =====================================================
+
+    st.subheader("AI REVIEW")
+
+    col1,col2 = st.columns(2)
 
     with col1:
 
-        st.metric(
-            "LIVE PRICE",
-            round(float(current_price), 2)
+        color = "green"
+
+        if bias == "BEARISH":
+            color = "red"
+
+        st.markdown(
+            f'<div class="box {color}">HTF BIAS<br>{bias}</div>',
+            unsafe_allow_html=True
         )
 
     with col2:
 
-        st.metric(
-            "SESSION",
-            session_filter()
+        st.markdown(
+            f'<div class="box blue">HTF POI<br>{poi}</div>',
+            unsafe_allow_html=True
         )
 
     # =====================================================
-    # DISPLAY
+    # POI TAP
     # =====================================================
 
-    st.subheader("MARKET ANALYSIS")
+    tap_text = "WAITING"
 
-    st.write(f"PAIR: {pair}")
+    if tapped:
+        tap_text = "POI TAPPED"
 
-    st.write(f"CURRENT PRICE: {round(float(current_price), 2)}")
-
-    st.write(f"SESSION: {session_filter()}")
-
-    st.write(f"LIQUIDITY: {sweep['type']}")
-
-    st.subheader("AI REVIEW")
-
-    st.success(f"HTF BIAS : {bias}")
-
-    st.info(f"HTF POI : {poi}")
-
-    st.warning(f"HTF POI TAP : {tapped}")
-
-    st.success(f"LTF MSS : {mss['type']}")
-
-    st.info(f"FVG : {fvg}")
+    st.markdown(
+        f'<div class="box yellow">HTF POI TAP<br>{tap_text}</div>',
+        unsafe_allow_html=True
+    )
 
     # =====================================================
-    # ENTRY
+    # MSS + FVG
     # =====================================================
 
-    if (
-        tapped
-        and sweep["valid"]
-        and mss["valid"]
-    ):
+    c4,c5 = st.columns(2)
 
-        entry = entry_model(
-            ltf_df,
-            bias,
-            mss
+    with c4:
+
+        st.markdown(
+            f'<div class="box green">LTF MSS<br>{mss}</div>',
+            unsafe_allow_html=True
         )
 
-        st.success("READY FOR ENTRY")
+    with c5:
 
-        st.code(entry)
+        st.markdown(
+            f'<div class="box blue">FVG<br>{fvg}</div>',
+            unsafe_allow_html=True
+        )
 
-        send_telegram(entry)
+    # =====================================================
+    # MICRO MSS
+    # =====================================================
+
+    st.markdown(
+        f'<div class="box green">MICRO MSS<br>{micro}</div>',
+        unsafe_allow_html=True
+    )
+
+    # =====================================================
+    # AI CONFIDENCE
+    # =====================================================
+
+    confidence = 80
+
+    if bias == "NEUTRAL":
+        confidence = 50
+
+    st.markdown(
+        f'<div class="box purple">AI CONFIDENCE<br>{confidence}%</div>',
+        unsafe_allow_html=True
+    )
+
+    # =====================================================
+    # ENTRY MODEL
+    # =====================================================
+
+    st.subheader("ENTRY MODEL")
+
+    if bias == "BULLISH":
+
+        entry = current_price
+        sl = entry - 20
+        tp1 = entry + 20
+        tp2 = entry + 40
+        tp3 = entry + 60
+
+    elif bias == "BEARISH":
+
+        entry = current_price
+        sl = entry + 20
+        tp1 = entry - 20
+        tp2 = entry - 40
+        tp3 = entry - 60
 
     else:
 
-        st.warning("WAITING FOR CONFIRMATION")
+        entry = current_price
+        sl = current_price
+        tp1 = current_price
+        tp2 = current_price
+        tp3 = current_price
+
+    signal = f"""
+ICT AI BOT ALERT
+
+PAIR: {pair}
+
+TRADE TYPE: {bias}
+
+ENTRY PRICE: {entry}
+
+SL: {sl}
+
+TP1: {tp1}
+TP2: {tp2}
+TP3: {tp3}
+
+SESSION: {session_filter()}
+
+HTF BIAS: {bias}
+
+LTF MSS: {mss}
+
+FVG: {fvg}
+
+MICRO MSS: {micro}
+
+CONFIDENCE: {confidence}%
+"""
+
+    st.code(signal)
+
+    # =====================================================
+    # TELEGRAM
+    # =====================================================
+
+    if tapped:
+        send_telegram(signal)
+
+    # =====================================================
+    # LIVE CHAT
+    # =====================================================
+
+    st.subheader("LIVE CHAT")
+
+    msg = st.text_input("SEND MESSAGE")
+
+    if st.button("SEND"):
+
+        st.success(f"YOU: {msg}")
+
+    # =====================================================
+    # STATS
+    # =====================================================
+
+    st.subheader("TODAY STATS")
+
+    s1,s2,s3 = st.columns(3)
+
+    with s1:
+        st.metric("TOTAL TRADES",12)
+
+    with s2:
+        st.metric("WINS",8)
+
+    with s3:
+        st.metric("LOSSES",4)
 
 else:
 

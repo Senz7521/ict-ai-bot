@@ -582,7 +582,7 @@ else:
 msg = f"""
 ICT AI BOT ALERT
 
-PAIR: {symbol}
+PAIR: {selected_pair}
 
 TRADE TYPE: {entry}
 

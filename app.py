@@ -1,5 +1,7 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
+# LONDON + NEW YORK SESSION ONLY
+# LIVE CHART ADDED
 # =========================================================
 
 import streamlit as st
@@ -8,6 +10,8 @@ from streamlit_autorefresh import st_autorefresh
 import ccxt
 import pandas as pd
 import requests
+import plotly.graph_objects as go
+
 from datetime import datetime
 
 # =========================================================
@@ -86,7 +90,7 @@ st.markdown("""
 # =========================================================
 
 st.markdown(
-    '<div class="big-title">ICT AI BOT PRO MAX</div>',
+    '<div class="big-title">ICT AI BOT PRO MAX ULTRA</div>',
     unsafe_allow_html=True
 )
 
@@ -117,7 +121,10 @@ def send_telegram(message):
 # EXCHANGE
 # =========================================================
 
-exchange = ccxt.binance({
+exchange = ccxt.bybit({
+    "options": {
+        "defaultType": "future"
+    },
     "enableRateLimit": True
 })
 
@@ -184,16 +191,21 @@ def get_data(symbol, timeframe, limit=200):
             ]
         )
 
+        df["time"] = pd.to_datetime(
+            df["time"],
+            unit="ms"
+        )
+
         return df
 
     except Exception as e:
 
-        st.error(f"DATA ERROR: {e}")
+        st.error(f"DATA ERROR : {e}")
 
         return None
 
 # =========================================================
-# SESSION
+# SESSION FILTER
 # =========================================================
 
 def session_filter():
@@ -207,7 +219,7 @@ def session_filter():
         return "NEW YORK SESSION"
 
     else:
-        return "ASIAN SESSION"
+        return "NO TRADE SESSION"
 
 # =========================================================
 # HTF BIAS
@@ -228,16 +240,24 @@ def get_htf_bias(df):
     return "NEUTRAL"
 
 # =========================================================
-# POI
+# HTF POI
 # =========================================================
 
 def get_poi(df, bias):
 
     if bias == "BULLISH":
-        return round(df["low"].iloc[-10:].min(),2)
+
+        return {
+            "type":"BULLISH POI",
+            "value":round(df["low"].iloc[-10:].min(),2)
+        }
 
     elif bias == "BEARISH":
-        return round(df["high"].iloc[-10:].max(),2)
+
+        return {
+            "type":"BEARISH POI",
+            "value":round(df["high"].iloc[-10:].max(),2)
+        }
 
     return None
 
@@ -250,7 +270,7 @@ def poi_tapped(price, poi):
     if poi is None:
         return False
 
-    if abs(price - poi) <= 20:
+    if abs(price - poi["value"]) <= 20:
         return True
 
     return False
@@ -275,20 +295,6 @@ def detect_mss(df, bias):
     return "NO MSS"
 
 # =========================================================
-# FVG
-# =========================================================
-
-def detect_fvg(df, bias):
-
-    if bias == "BULLISH":
-        return "BULLISH FVG"
-
-    elif bias == "BEARISH":
-        return "BEARISH FVG"
-
-    return "NO FVG"
-
-# =========================================================
 # MICRO MSS
 # =========================================================
 
@@ -306,6 +312,26 @@ def micro_mss(df, bias):
     return "NO MICRO MSS"
 
 # =========================================================
+# FVG
+# =========================================================
+
+def detect_fvg(df, bias):
+
+    for i in range(2, len(df)-1):
+
+        if bias == "BULLISH":
+
+            if df["high"].iloc[i-2] < df["low"].iloc[i]:
+                return "BULLISH FVG"
+
+        elif bias == "BEARISH":
+
+            if df["low"].iloc[i-2] > df["high"].iloc[i]:
+                return "BEARISH FVG"
+
+    return "NO FVG"
+
+# =========================================================
 # LOAD DATA
 # =========================================================
 
@@ -318,11 +344,24 @@ ltf_df = get_data(symbol, timeframe)
 
 if htf_df is not None and ltf_df is not None:
 
+    # =====================================================
+    # SESSION CHECK
+    # =====================================================
+
+    session = session_filter()
+
+    # =====================================================
+    # ANALYSIS
+    # =====================================================
+
     bias = get_htf_bias(htf_df)
 
     poi = get_poi(htf_df, bias)
 
-    current_price = round(float(ltf_df["close"].iloc[-1]),2)
+    current_price = round(
+        float(ltf_df["close"].iloc[-1]),
+        2
+    )
 
     tapped = poi_tapped(current_price, poi)
 
@@ -333,26 +372,68 @@ if htf_df is not None and ltf_df is not None:
     micro = micro_mss(ltf_df, bias)
 
     # =====================================================
+    # LIVE CHART
+    # =====================================================
+
+    st.subheader("LIVE CHART")
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Candlestick(
+            x=ltf_df["time"],
+            open=ltf_df["open"],
+            high=ltf_df["high"],
+            low=ltf_df["low"],
+            close=ltf_df["close"],
+            name="PRICE"
+        )
+    )
+
+    # POI LINE
+    if poi:
+
+        fig.add_hline(
+            y=poi["value"],
+            line_dash="dash",
+            line_color="yellow"
+        )
+
+    fig.update_layout(
+        height=700,
+        template="plotly_dark",
+        xaxis_rangeslider_visible=False
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+    # =====================================================
     # TOP BOXES
     # =====================================================
 
     c1,c2,c3 = st.columns(3)
 
     with c1:
+
         st.markdown(
             f'<div class="box blue">PAIR<br>{pair}</div>',
             unsafe_allow_html=True
         )
 
     with c2:
+
         st.markdown(
             f'<div class="box green">LIVE PRICE<br>{current_price}</div>',
             unsafe_allow_html=True
         )
 
     with c3:
+
         st.markdown(
-            f'<div class="box purple">SESSION<br>{session_filter()}</div>',
+            f'<div class="box purple">SESSION<br>{session}</div>',
             unsafe_allow_html=True
         )
 
@@ -364,6 +445,7 @@ if htf_df is not None and ltf_df is not None:
 
     col1,col2 = st.columns(2)
 
+    # HTF BIAS
     with col1:
 
         color = "green"
@@ -376,12 +458,22 @@ if htf_df is not None and ltf_df is not None:
             unsafe_allow_html=True
         )
 
+    # HTF POI
     with col2:
 
-        st.markdown(
-            f'<div class="box blue">HTF POI<br>{poi}</div>',
-            unsafe_allow_html=True
-        )
+        if poi:
+
+            st.markdown(
+                f'<div class="box blue">HTF POI<br>{poi["value"]}</div>',
+                unsafe_allow_html=True
+            )
+
+        else:
+
+            st.markdown(
+                f'<div class="box blue">HTF POI<br>NO POI</div>',
+                unsafe_allow_html=True
+            )
 
     # =====================================================
     # POI TAP
@@ -393,7 +485,7 @@ if htf_df is not None and ltf_df is not None:
         tap_text = "POI TAPPED"
 
     st.markdown(
-        f'<div class="box yellow">HTF POI TAP<br>{tap_text}</div>',
+        f'<div class="box yellow">POI TAP<br>{tap_text}</div>',
         unsafe_allow_html=True
     )
 
@@ -422,7 +514,7 @@ if htf_df is not None and ltf_df is not None:
     # =====================================================
 
     st.markdown(
-        f'<div class="box green">MICRO MSS<br>{micro}</div>',
+        f'<div class="box purple">MICRO MSS<br>{micro}</div>',
         unsafe_allow_html=True
     )
 
@@ -430,13 +522,26 @@ if htf_df is not None and ltf_df is not None:
     # AI CONFIDENCE
     # =====================================================
 
-    confidence = 80
+    confidence = 50
 
-    if bias == "NEUTRAL":
-        confidence = 50
+    if (
+        "BULLISH" in bias
+        and "BULLISH" in mss
+        and "BULLISH" in micro
+        and "BULLISH" in fvg
+    ):
+        confidence = 90
+
+    elif (
+        "BEARISH" in bias
+        and "BEARISH" in mss
+        and "BEARISH" in micro
+        and "BEARISH" in fvg
+    ):
+        confidence = 90
 
     st.markdown(
-        f'<div class="box purple">AI CONFIDENCE<br>{confidence}%</div>',
+        f'<div class="box yellow">AI CONFIDENCE<br>{confidence}%</div>',
         unsafe_allow_html=True
     )
 
@@ -446,46 +551,52 @@ if htf_df is not None and ltf_df is not None:
 
     st.subheader("ENTRY MODEL")
 
-    if bias == "BULLISH":
+    allow_trade = False
 
-        entry = current_price
-        sl = entry - 20
-        tp1 = entry + 20
-        tp2 = entry + 40
-        tp3 = entry + 60
+    # ONLY LONDON + NEW YORK
+    if (
+        session == "LONDON SESSION"
+        or session == "NEW YORK SESSION"
+    ):
 
-    elif bias == "BEARISH":
+        allow_trade = True
 
-        entry = current_price
-        sl = entry + 20
-        tp1 = entry - 20
-        tp2 = entry - 40
-        tp3 = entry - 60
+    if allow_trade and tapped:
 
-    else:
+        if bias == "BULLISH":
 
-        entry = current_price
-        sl = current_price
-        tp1 = current_price
-        tp2 = current_price
-        tp3 = current_price
+            entry = current_price
+            sl = entry - 20
+            tp1 = entry + 20
+            tp2 = entry + 40
+            tp3 = entry + 60
 
-    signal = f"""
+        elif bias == "BEARISH":
+
+            entry = current_price
+            sl = entry + 20
+            tp1 = entry - 20
+            tp2 = entry - 40
+            tp3 = entry - 60
+
+        signal = f"""
 ICT AI BOT ALERT
 
 PAIR: {pair}
 
 TRADE TYPE: {bias}
 
-ENTRY PRICE: {entry}
+ENTRY: {entry}
 
 SL: {sl}
 
 TP1: {tp1}
+
 TP2: {tp2}
+
 TP3: {tp3}
 
-SESSION: {session_filter()}
+SESSION: {session}
 
 HTF BIAS: {bias}
 
@@ -498,14 +609,16 @@ MICRO MSS: {micro}
 CONFIDENCE: {confidence}%
 """
 
-    st.code(signal)
+        st.success(signal)
 
-    # =====================================================
-    # TELEGRAM
-    # =====================================================
-
-    if tapped:
+        # TELEGRAM
         send_telegram(signal)
+
+    else:
+
+        st.warning(
+            "NO TRADE - WAITING FOR LONDON OR NEW YORK SESSION"
+        )
 
     # =====================================================
     # LIVE CHAT
@@ -517,7 +630,7 @@ CONFIDENCE: {confidence}%
 
     if st.button("SEND"):
 
-        st.success(f"YOU: {msg}")
+        st.success(f"YOU : {msg}")
 
     # =====================================================
     # STATS

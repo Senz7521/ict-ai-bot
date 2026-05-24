@@ -546,10 +546,10 @@ if entry == "BUY" or entry == "SELL":
 
     send_telegram
 # =========================
-# ENTRY + TP/SL
+# ENTRY + TP/SLs
 # =========================
 
-current_price = price
+current_price = 0
 entry_price = current_price
 
 if entry == "SELL":

@@ -1,6 +1,7 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
 # FULL PROFESSIONAL SMART MONEY VERSION
+# FINAL CLEAN VERSION
 # =========================================================
 
 # =========================================================
@@ -59,7 +60,7 @@ st.markdown("""
     border-radius:16px;
     margin-bottom:15px;
     color:white;
-    font-size:18px;
+    font-size:19px;
     font-weight:bold;
     text-align:center;
     box-shadow:0px 0px 12px rgba(0,0,0,0.4);
@@ -481,6 +482,7 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     pd_zone = pd_array(htf_4h)
 
     current_time = datetime.now().strftime("%H:%M:%S")
+    current_date = datetime.now().strftime("%d-%m-%Y")
 
     # =====================================================
     # LIVE CHART
@@ -497,6 +499,7 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
             high=ltf_df["high"],
             low=ltf_df["low"],
             close=ltf_df["close"],
+
             increasing_line_color="#00ff88",
             decreasing_line_color="#ff3355"
         )
@@ -532,19 +535,60 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     c1,c2,c3,c4,c5 = st.columns(5)
 
     with c1:
-        st.markdown(f'<div class="box blue">PAIR<br>{pair}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box blue">PAIR<br>{pair}</div>',
+            unsafe_allow_html=True
+        )
 
     with c2:
-        st.markdown(f'<div class="box green">LIVE PRICE<br>{current_price}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box green">LIVE PRICE<br>{current_price}</div>',
+            unsafe_allow_html=True
+        )
 
     with c3:
-        st.markdown(f'<div class="box purple">SESSION<br>{session}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box purple">SESSION<br>{session}</div>',
+            unsafe_allow_html=True
+        )
 
     with c4:
-        st.markdown(f'<div class="box yellow">KILLZONE<br>{kz}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box yellow">KILLZONE<br>{kz}</div>',
+            unsafe_allow_html=True
+        )
 
     with c5:
-        st.markdown(f'<div class="box orange">LIVE TIME<br>{current_time}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box orange">LIVE TIME<br>{current_time}</div>',
+            unsafe_allow_html=True
+        )
+
+    # =====================================================
+    # SESSION TIMES
+    # =====================================================
+
+    st.subheader("SESSION TIMINGS")
+
+    t1,t2,t3 = st.columns(3)
+
+    with t1:
+        st.markdown(
+            '<div class="box blue">TOKYO SESSION<br><br>5 AM - 12 PM IST</div>',
+            unsafe_allow_html=True
+        )
+
+    with t2:
+        st.markdown(
+            '<div class="box green">LONDON SESSION<br><br>12 PM - 5 PM IST</div>',
+            unsafe_allow_html=True
+        )
+
+    with t3:
+        st.markdown(
+            '<div class="box red">NEW YORK SESSION<br><br>5 PM - 10 PM IST</div>',
+            unsafe_allow_html=True
+        )
 
     # =====================================================
     # SIGNAL BOXES
@@ -553,24 +597,42 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     s1,s2,s3 = st.columns(3)
 
     with s1:
-        st.markdown(f'<div class="box yellow">LIQUIDITY SWEEP<br>{sweep}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box yellow">LIQUIDITY SWEEP<br>{sweep}</div>',
+            unsafe_allow_html=True
+        )
 
     with s2:
-        st.markdown(f'<div class="box green">MSS<br>{mss}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box green">MSS<br>{mss}</div>',
+            unsafe_allow_html=True
+        )
 
     with s3:
-        st.markdown(f'<div class="box purple">MICRO MSS<br>{micro}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box purple">MICRO MSS<br>{micro}</div>',
+            unsafe_allow_html=True
+        )
 
     s4,s5,s6 = st.columns(3)
 
     with s4:
-        st.markdown(f'<div class="box blue">FVG<br>{fvg}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box blue">FVG<br>{fvg}</div>',
+            unsafe_allow_html=True
+        )
 
     with s5:
-        st.markdown(f'<div class="box red">PD ARRAY<br>{pd_zone}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box red">PD ARRAY<br>{pd_zone}</div>',
+            unsafe_allow_html=True
+        )
 
     with s6:
-        st.markdown(f'<div class="box orange">DISPLACEMENT<br>{displacement_signal}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="box orange">DISPLACEMENT<br>{displacement_signal}</div>',
+            unsafe_allow_html=True
+        )
 
     # =====================================================
     # AI SCORE
@@ -599,17 +661,17 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     )
 
     # =====================================================
-    # LIVE TRADE PANEL
+    # ENTRY DETAILS
     # =====================================================
 
     entry = current_price
     sl = round(entry - 20,2)
     tp1 = round(entry + 20,2)
-
     profit = round(tp1 - entry,2)
 
-    trade_date = datetime.now().strftime("%d-%m-%Y")
-    trade_time = datetime.now().strftime("%H:%M:%S")
+    # =====================================================
+    # BIG PROFESSIONAL TRADE BOX
+    # =====================================================
 
     st.subheader("LIVE TRADE PANEL")
 
@@ -639,12 +701,12 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
 
     <div class="box blue">
     DATE<br><br>
-    {trade_date}
+    {current_date}
     </div>
 
     <div class="box purple">
     TIME<br><br>
-    {trade_time}
+    {current_time}
     </div>
 
     <div class="box green">
@@ -696,7 +758,7 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     # TELEGRAM ALERT
     # =====================================================
 
-    signal = f'''
+    signal = f"""
 
 ICT AI BOT ALERT
 
@@ -711,8 +773,7 @@ TP : {tp1}
 CONFIDENCE : {score}%
 
 SESSION : {session}
-
-'''
+"""
 
     if st.session_state.last_signal != signal:
 

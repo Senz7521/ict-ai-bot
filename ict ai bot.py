@@ -56,8 +56,8 @@ st.markdown("""
 # TELEGRAM
 # =========================================================
 
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
+CHAT_ID = "7790207379"
 
 def send_telegram(message):
 

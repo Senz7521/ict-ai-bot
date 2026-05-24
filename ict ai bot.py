@@ -1,9 +1,5 @@
 # =========================================================
-# ICT AI BOT PRO FINAL FIXED
-# =========================================================
-
-# =========================================================
-# IMPORTS
+# ICT AI BOT ULTRA PRO
 # =========================================================
 
 import streamlit as st
@@ -15,6 +11,9 @@ import plotly.graph_objects as go
 
 import requests
 import os
+import json
+import numpy as np
+
 from datetime import datetime
 
 # =========================================================
@@ -28,12 +27,12 @@ st_autorefresh(interval=10000, key="refresh")
 # =========================================================
 
 st.set_page_config(
-    page_title="ICT AI BOT PRO",
+    page_title="ICT AI BOT ULTRA PRO",
     layout="wide"
 )
 
 # =========================================================
-# CUSTOM BACKGROUND
+# CUSTOM UI
 # =========================================================
 
 st.markdown("""
@@ -45,9 +44,9 @@ st.markdown("""
 }
 
 [data-testid="stMetric"] {
-    background-color: #1c1f26;
-    padding: 15px;
+    background-color: #161b22;
     border-radius: 10px;
+    padding: 15px;
 }
 
 </style>
@@ -57,8 +56,8 @@ st.markdown("""
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
-CHAT_ID = "7790207379"
+TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 def send_telegram(message):
 
@@ -72,10 +71,15 @@ def send_telegram(message):
     requests.post(url, data=data)
 
 # =========================================================
-# EXCHANGE
+# BINANCE FUTURES
 # =========================================================
 
-exchange = ccxt.bybit()
+exchange = ccxt.binance({
+    "enableRateLimit": True,
+    "options": {
+        "defaultType": "future"
+    }
+})
 
 # =========================================================
 # PAIRS
@@ -84,14 +88,14 @@ exchange = ccxt.bybit()
 pairs = [
     "BTC/USDT",
     "ETH/USDT",
-    "XRP/USDT",
+    "XRP/USDT"
 ]
 
 # =========================================================
 # SIDEBAR
 # =========================================================
 
-st.sidebar.title("ICT AI BOT")
+st.sidebar.title("ICT AI BOT ULTRA")
 
 selected_pair = st.sidebar.selectbox(
     "SELECT PAIR",
@@ -107,7 +111,7 @@ def get_data(symbol, timeframe):
     ohlcv = exchange.fetch_ohlcv(
         symbol,
         timeframe,
-        limit=200
+        limit=300
     )
 
     df = pd.DataFrame(
@@ -125,216 +129,152 @@ def get_data(symbol, timeframe):
     return df
 
 # =========================================================
-# DATA
+# MULTI TIMEFRAME
 # =========================================================
 
-htf_df = get_data(selected_pair, "15m")
+htf_df = get_data(selected_pair, "1h")
+mtf_df = get_data(selected_pair, "15m")
 ltf_df = get_data(selected_pair, "1m")
+
+# =========================================================
+# EMA
+# =========================================================
+
+ltf_df["ema20"] = ltf_df["close"].ewm(span=20).mean()
+ltf_df["ema50"] = ltf_df["close"].ewm(span=50).mean()
+ltf_df["ema200"] = ltf_df["close"].ewm(span=200).mean()
+
+# =========================================================
+# ATR
+# =========================================================
+
+ltf_df["tr"] = (
+    ltf_df["high"] - ltf_df["low"]
+)
+
+atr = ltf_df["tr"].rolling(14).mean().iloc[-1]
 
 # =========================================================
 # VALUES
 # =========================================================
 
 last_close = ltf_df["close"].iloc[-1]
-prev_close = ltf_df["close"].iloc[-2]
-
 last_high = ltf_df["high"].iloc[-1]
-prev_high = ltf_df["high"].iloc[-2]
-
 last_low = ltf_df["low"].iloc[-1]
-prev_low = ltf_df["low"].iloc[-2]
 
 # =========================================================
-# SESSION FILTER
+# TREND
 # =========================================================
 
-current_hour = datetime.utcnow().hour
+bullish_trend = (
+    ltf_df["ema20"].iloc[-1]
+    >
+    ltf_df["ema50"].iloc[-1]
+    >
+    ltf_df["ema200"].iloc[-1]
+)
 
-session = "SESSION CLOSED"
-session_active = False
-
-if 7 <= current_hour <= 11:
-
-    session = "LONDON SESSION"
-    session_active = True
-
-elif 13 <= current_hour <= 17:
-
-    session = "NEW YORK SESSION"
-    session_active = True
-
-allow_trade = session_active
-
-# =========================================================
-# NEWS FILTER
-# =========================================================
-
-high_impact_news = False
+bearish_trend = (
+    ltf_df["ema20"].iloc[-1]
+    <
+    ltf_df["ema50"].iloc[-1]
+    <
+    ltf_df["ema200"].iloc[-1]
+)
 
 # =========================================================
-# HTF BIAS
+# BOS
 # =========================================================
 
-if htf_df["close"].iloc[-1] > htf_df["close"].iloc[-20]:
+recent_high = ltf_df["high"].rolling(10).max().iloc[-2]
+recent_low = ltf_df["low"].rolling(10).min().iloc[-2]
 
-    htf_bias = "BULLISH"
+bos = "NONE"
 
-else:
+if last_close > recent_high:
+    bos = "BULLISH BOS"
 
-    htf_bias = "BEARISH"
-
-# =========================================================
-# LIQUIDITY SWEEP
-# =========================================================
-
-if htf_bias == "BULLISH":
-
-    if last_low < ltf_df["low"].iloc[-5]:
-
-        sweep = "SELL SIDE LIQUIDITY TAKEN"
-
-    else:
-
-        sweep = "NO SWEEP"
-
-else:
-
-    if last_high > ltf_df["high"].iloc[-5]:
-
-        sweep = "BUY SIDE LIQUIDITY TAKEN"
-
-    else:
-
-        sweep = "NO SWEEP"
+if last_close < recent_low:
+    bos = "BEARISH BOS"
 
 # =========================================================
-# HTF POI
+# ORDER BLOCK
 # =========================================================
 
-if htf_bias == "BULLISH":
+bullish_ob = False
+bearish_ob = False
 
-    htf_poi = round(htf_df["low"].iloc[-10], 2)
+last_candle = ltf_df.iloc[-3]
 
-else:
+if (
+    last_candle["close"]
+    <
+    last_candle["open"]
+    and
+    last_close > last_candle["high"]
+):
+    bullish_ob = True
 
-    htf_poi = round(htf_df["high"].iloc[-10], 2)
-
-# =========================================================
-# POI TAP
-# =========================================================
-
-if htf_bias == "BULLISH":
-
-    if last_low <= htf_poi:
-
-        poi_tap = "POI TAPPED"
-
-    else:
-
-        poi_tap = "WAITING"
-
-else:
-
-    if last_high >= htf_poi:
-
-        poi_tap = "POI TAPPED"
-
-    else:
-
-        poi_tap = "WAITING"
-
-# =========================================================
-# LTF MSS
-# =========================================================
-
-if htf_bias == "BULLISH":
-
-    if last_high > prev_high:
-
-        ltf_mss = "BULLISH MSS"
-
-    else:
-
-        ltf_mss = "NO MSS"
-
-else:
-
-    if last_low < prev_low:
-
-        ltf_mss = "BEARISH MSS"
-
-    else:
-
-        ltf_mss = "NO MSS"
+if (
+    last_candle["close"]
+    >
+    last_candle["open"]
+    and
+    last_close < last_candle["low"]
+):
+    bearish_ob = True
 
 # =========================================================
 # FVG
 # =========================================================
 
-if htf_bias == "BULLISH":
+bullish_fvg = False
+bearish_fvg = False
 
-    if ltf_df["low"].iloc[-1] > ltf_df["high"].iloc[-3]:
+if (
+    ltf_df["low"].iloc[-1]
+    >
+    ltf_df["high"].iloc[-3]
+):
+    bullish_fvg = True
 
-        fvg = "BULLISH FVG"
-
-    else:
-
-        fvg = "NO FVG"
-
-else:
-
-    if ltf_df["high"].iloc[-1] < ltf_df["low"].iloc[-3]:
-
-        fvg = "BEARISH FVG"
-
-    else:
-
-        fvg = "NO FVG"
+if (
+    ltf_df["high"].iloc[-1]
+    <
+    ltf_df["low"].iloc[-3]
+):
+    bearish_fvg = True
 
 # =========================================================
-# MICRO MSS
+# VOLUME
 # =========================================================
 
-if htf_bias == "BULLISH":
+avg_volume = (
+    ltf_df["volume"]
+    .rolling(20)
+    .mean()
+    .iloc[-1]
+)
 
-    if last_close > prev_close:
-
-        micro_mss = "MICRO BULLISH MSS"
-
-    else:
-
-        micro_mss = "NO MICRO MSS"
-
-else:
-
-    if last_close < prev_close:
-
-        micro_mss = "MICRO BEARISH MSS"
-
-    else:
-
-        micro_mss = "NO MICRO MSS"
+volume_confirmation = (
+    ltf_df["volume"].iloc[-1]
+    >
+    avg_volume
+)
 
 # =========================================================
-# CONFIDENCE
+# KILLZONE
 # =========================================================
 
-confidence = 0
+current_hour = datetime.utcnow().hour
 
-if htf_bias:
-    confidence += 20
+killzone = False
 
-if "LIQUIDITY" in sweep:
-    confidence += 20
+if 7 <= current_hour <= 10:
+    killzone = True
 
-if "MSS" in ltf_mss:
-    confidence += 20
-
-if "FVG" in fvg:
-    confidence += 20
-
-if "MICRO" in micro_mss:
-    confidence += 20
+if 13 <= current_hour <= 16:
+    killzone = True
 
 # =========================================================
 # ENTRY
@@ -345,401 +285,265 @@ entry = "NO ENTRY"
 sl = 0
 tp = 0
 
-tp1 = 0
-tp2 = 0
-tp3 = 0
-
-poi_type = "NONE"
-entry_model = "NONE"
-
-if not allow_trade:
-
-    entry = "SESSION CLOSED"
-
-elif high_impact_news:
-
-    entry = "NEWS TIME NO TRADE"
+confidence = 0
 
 # =========================================================
-# BUY SETUP
+# BUY
 # =========================================================
 
-elif (
-    htf_bias == "BULLISH"
-    and poi_tap == "POI TAPPED"
-    and ltf_mss == "BULLISH MSS"
-    and fvg == "BULLISH FVG"
-    and micro_mss == "MICRO BULLISH MSS"
+if (
+    bullish_trend
+    and bullish_ob
+    and bullish_fvg
+    and bos == "BULLISH BOS"
+    and volume_confirmation
+    and killzone
 ):
 
     entry = "BUY"
 
-    sl = round(last_close - 10, 2)
+    sl = round(last_close - atr, 2)
 
-    tp1 = round(last_close + 10, 2)
-    tp2 = round(last_close + 20, 2)
-    tp3 = round(last_close + 35, 2)
+    risk = abs(last_close - sl)
 
-    tp = tp3
-
-    poi_type = "Bullish Order Block"
-    entry_model = "Micro Bullish FVG"
+    tp = round(last_close + (risk * 3), 2)
 
 # =========================================================
-# SELL SETUP
+# SELL
 # =========================================================
 
 elif (
-    htf_bias == "BEARISH"
-    and poi_tap == "POI TAPPED"
-    and ltf_mss == "BEARISH MSS"
-    and fvg == "BEARISH FVG"
-    and micro_mss == "MICRO BEARISH MSS"
+    bearish_trend
+    and bearish_ob
+    and bearish_fvg
+    and bos == "BEARISH BOS"
+    and volume_confirmation
+    and killzone
 ):
 
     entry = "SELL"
 
-    sl = round(last_close + 10, 2)
+    sl = round(last_close + atr, 2)
 
-    tp1 = round(last_close - 10, 2)
-    tp2 = round(last_close - 20, 2)
-    tp3 = round(last_close - 35, 2)
+    risk = abs(last_close - sl)
 
-    tp = tp3
-
-    poi_type = "Bearish Order Block"
-    entry_model = "Micro Bearish FVG"
-
-# =========================================================
-# AI REVIEW
-# =========================================================
-
-if entry == "BUY":
-
-    ai_review = """
-Bullish structure aligned.
-Liquidity sweep confirmed.
-MSS confirmed.
-FVG confirmed.
-High probability BUY setup.
-"""
-
-elif entry == "SELL":
-
-    ai_review = """
-Bearish structure aligned.
-Liquidity sweep confirmed.
-MSS confirmed.
-FVG confirmed.
-High probability SELL setup.
-"""
-
-else:
-
-    ai_review = """
-Waiting for confirmation.
-No valid setup.
-"""
-
-# =========================================================
-# TRADE HISTORY
-# =========================================================
-
-trade_file = "trade_history.csv"
-
-if not os.path.exists(trade_file):
-
-    trade_df = pd.DataFrame(columns=[
-        "PAIR",
-        "ENTRY",
-        "SL",
-        "TP",
-        "CONFIDENCE",
-        "RESULT",
-        "PNL"
-    ])
-
-    trade_df.to_csv(trade_file, index=False)
-
-# =========================================================
-# RESULT
-# =========================================================
-
-result = "RUNNING"
-pnl = 0
-
-if entry == "BUY":
-
-    if last_close >= tp:
-
-        result = "WIN"
-        pnl = 25
-
-    elif last_close <= sl:
-
-        result = "LOSS"
-        pnl = -10
-
-elif entry == "SELL":
-
-    if last_close <= tp:
-
-        result = "WIN"
-        pnl = 25
-
-    elif last_close >= sl:
-
-        result = "LOSS"
-        pnl = -10
-
-# =========================================================
-# SAVE TRADE
-# =========================================================
-
-new_trade = pd.DataFrame([{
-    "PAIR": selected_pair,
-    "ENTRY": entry,
-    "SL": sl,
-    "TP": tp,
-    "CONFIDENCE": confidence,
-    "RESULT": result,
-    "PNL": pnl
-}])
-
-history = pd.read_csv(trade_file)
-
-history = pd.concat(
-    [history, new_trade],
-    ignore_index=True
-)
-
-history.to_csv(trade_file, index=False)
-
-# =========================================================
-# TELEGRAM ALERT
-# =========================================================
-
-if entry == "BUY" or entry == "SELL":
-
-    msg = f"""
-ICT AI BOT ALERT
-
-PAIR: {selected_pair}
-
-TRADE TYPE: {entry}
-
-ENTRY PRICE: {round(last_close, 2)}
-
-SL: {sl}
-
-TP1: {tp1}
-TP2: {tp2}
-TP3: {tp3}
-
-CONFIDENCE: {confidence}%
-
-SESSION: {session}
-
-HTF BIAS: {htf_bias}
-
-LTF MSS: {ltf_mss}
-
-POI TYPE: {poi_type}
-
-ENTRY MODEL: {entry_model}
-
-CONFIRMED:
-✓ HTF BIAS
-✓ POI
-✓ LTF POI TAP
-✓ LTF MSS
-✓ MICRO FVG / OB ENTRY
-
-STATUS: READY FOR ENTRY
-"""
-
-    send_telegram(msg)
-
-# =========================================================
-# STATS
-# =========================================================
-
-history = pd.read_csv(trade_file)
-
-wins = len(history[history["RESULT"] == "WIN"])
-
-losses = len(history[history["RESULT"] == "LOSS"])
-
-total_trades = wins + losses
-
-if total_trades > 0:
-
-    winrate = round((wins / total_trades) * 100, 2)
-
-else:
-
-    winrate = 0
-
-total_pnl = history["PNL"].sum()
-
-# =========================================================
-# TITLE
-# =========================================================
-
-st.title("ICT AI BOT PRO")
-
-st.success(f"ACTIVE PAIR: {selected_pair}")
-
-# =========================================================
-# SESSION STATUS
-# =========================================================
-
-st.markdown("## SESSION STATUS")
-
-if session_active:
-
-    st.success(session)
-
-else:
-
-    st.warning(session)
-
-# =========================================================
-# MARKET ANALYSIS
-# =========================================================
-
-st.markdown("## MARKET ANALYSIS")
-
-st.write("PAIR:", selected_pair)
-st.write("CURRENT PRICE:", round(last_close, 2))
-st.write("SESSION:", session)
-st.write("LIQUIDITY:", sweep)
-
-# =========================================================
-# AI REVIEW
-# =========================================================
-
-st.markdown("## AI REVIEW")
-
-st.write(ai_review)
-
-# =========================================================
-# HTF
-# =========================================================
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    st.subheader("HTF BIAS")
-
-    if htf_bias == "BULLISH":
-
-        st.success(htf_bias)
-
-    else:
-
-        st.error(htf_bias)
-
-with col2:
-
-    st.subheader("HTF POI")
-
-    st.info(htf_poi)
-
-# =========================================================
-# POI TAP
-# =========================================================
-
-st.markdown("## HTF POI TAP")
-
-if poi_tap == "POI TAPPED":
-
-    st.success(poi_tap)
-
-else:
-
-    st.warning(poi_tap)
-
-# =========================================================
-# LTF
-# =========================================================
-
-col3, col4 = st.columns(2)
-
-with col3:
-
-    st.subheader("LTF MSS")
-
-    st.success(ltf_mss)
-
-with col4:
-
-    st.subheader("FVG")
-
-    st.info(fvg)
-
-# =========================================================
-# MICRO MSS
-# =========================================================
-
-st.markdown("## MICRO MSS")
-
-st.success(micro_mss)
+    tp = round(last_close - (risk * 3), 2)
 
 # =========================================================
 # CONFIDENCE
 # =========================================================
 
+if bullish_trend or bearish_trend:
+    confidence += 20
+
+if bullish_ob or bearish_ob:
+    confidence += 20
+
+if bullish_fvg or bearish_fvg:
+    confidence += 20
+
+if volume_confirmation:
+    confidence += 20
+
+if bos != "NONE":
+    confidence += 20
+
+# =========================================================
+# TELEGRAM DUPLICATE FIX
+# =========================================================
+
+signal_file = "last_signal.json"
+
+current_signal = {
+    "pair": selected_pair,
+    "entry": entry,
+    "price": round(last_close, 2)
+}
+
+send_alert = True
+
+if os.path.exists(signal_file):
+
+    with open(signal_file, "r") as f:
+
+        old_signal = json.load(f)
+
+    if old_signal == current_signal:
+
+        send_alert = False
+
+# =========================================================
+# TELEGRAM ALERT
+# =========================================================
+
+if (
+    (entry == "BUY" or entry == "SELL")
+    and send_alert
+):
+
+    msg = f"""
+
+ICT AI BOT ULTRA ALERT
+
+PAIR: {selected_pair}
+
+ENTRY: {entry}
+
+ENTRY PRICE: {round(last_close, 2)}
+
+STOP LOSS: {sl}
+
+TAKE PROFIT: {tp}
+
+BOS: {bos}
+
+CONFIDENCE: {confidence}%
+
+"""
+
+    send_telegram(msg)
+
+    with open(signal_file, "w") as f:
+
+        json.dump(current_signal, f)
+
+# =========================================================
+# UI
+# =========================================================
+
+st.title("ICT AI BOT ULTRA PRO")
+
+st.success(f"PAIR: {selected_pair}")
+
+# =========================================================
+# METRICS
+# =========================================================
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("ENTRY", entry)
+
+with col2:
+    st.metric("PRICE", round(last_close, 2))
+
+with col3:
+    st.metric("SL", sl)
+
+with col4:
+    st.metric("TP", tp)
+
+# =========================================================
+# AI CONFIDENCE
+# =========================================================
+
 st.markdown("## AI CONFIDENCE")
+
+st.progress(confidence / 100)
 
 st.metric("CONFIDENCE", f"{confidence}%")
 
 # =========================================================
-# ENTRY MODEL
+# MARKET STRUCTURE
 # =========================================================
 
-st.markdown("## ENTRY MODEL")
+st.markdown("## MARKET STRUCTURE")
 
-col5, col6, col7, col8, col9 = st.columns(5)
+st.write("BOS:", bos)
 
-with col5:
-    st.metric("ENTRY", entry)
+st.write("BULLISH OB:", bullish_ob)
 
-with col6:
-    st.metric("SL", sl)
+st.write("BEARISH OB:", bearish_ob)
 
-with col7:
-    st.metric("TP1", tp1)
+st.write("BULLISH FVG:", bullish_fvg)
 
-with col8:
-    st.metric("TP2", tp2)
-
-with col9:
-    st.metric("TP3", tp3)
+st.write("BEARISH FVG:", bearish_fvg)
 
 # =========================================================
-# LIVE CHART
+# CHART
 # =========================================================
 
-st.markdown("## LIVE MARKET CHART")
+st.markdown("## LIVE CHART")
 
-fig = go.Figure(
-    data=[
-        go.Candlestick(
-            x=ltf_df.index,
-            open=ltf_df["open"],
-            high=ltf_df["high"],
-            low=ltf_df["low"],
-            close=ltf_df["close"]
-        )
-    ]
+fig = go.Figure()
+
+fig.add_trace(
+    go.Candlestick(
+        x=ltf_df.index,
+        open=ltf_df["open"],
+        high=ltf_df["high"],
+        low=ltf_df["low"],
+        close=ltf_df["close"],
+        name="PRICE"
+    )
 )
+
+# EMA
+
+fig.add_trace(
+    go.Scatter(
+        x=ltf_df.index,
+        y=ltf_df["ema20"],
+        name="EMA20"
+    )
+)
+
+fig.add_trace(
+    go.Scatter(
+        x=ltf_df.index,
+        y=ltf_df["ema50"],
+        name="EMA50"
+    )
+)
+
+fig.add_trace(
+    go.Scatter(
+        x=ltf_df.index,
+        y=ltf_df["ema200"],
+        name="EMA200"
+    )
+)
+
+# ENTRY ARROW
+
+if entry == "BUY":
+
+    fig.add_annotation(
+        x=ltf_df.index[-1],
+        y=last_close,
+        text="BUY",
+        showarrow=True
+    )
+
+if entry == "SELL":
+
+    fig.add_annotation(
+        x=ltf_df.index[-1],
+        y=last_close,
+        text="SELL",
+        showarrow=True
+    )
+
+# FVG BOX
+
+if bullish_fvg:
+
+    fig.add_shape(
+        type="rect",
+        x0=ltf_df.index[-3],
+        x1=ltf_df.index[-1],
+        y0=ltf_df["high"].iloc[-3],
+        y1=ltf_df["low"].iloc[-1]
+    )
+
+# UI
 
 fig.update_layout(
     template="plotly_dark",
-    height=700,
-    xaxis_rangeslider_visible=False
+    height=850,
+    xaxis_rangeslider_visible=False,
+    paper_bgcolor="#0e1117",
+    plot_bgcolor="#0e1117"
 )
 
 st.plotly_chart(
@@ -748,39 +552,9 @@ st.plotly_chart(
 )
 
 # =========================================================
-# PERFORMANCE
-# =========================================================
-
-st.markdown("## PERFORMANCE")
-
-perf_col1, perf_col2, perf_col3, perf_col4 = st.columns(4)
-
-with perf_col1:
-    st.metric("TOTAL TRADES", total_trades)
-
-with perf_col2:
-    st.metric("WINS", wins)
-
-with perf_col3:
-    st.metric("WIN RATE", f"{winrate}%")
-
-with perf_col4:
-    st.metric("TOTAL PNL", total_pnl)
-
-# =========================================================
-# TRADE HISTORY
-# =========================================================
-
-st.markdown("## TRADE HISTORY")
-
-history = pd.read_csv(trade_file)
-
-st.dataframe(history)
-
-# =========================================================
 # FOOTER
 # =========================================================
 
 st.markdown("---")
 
-st.caption("ICT AI BOT PRO FINAL FIXED")
+st.caption("ICT AI BOT ULTRA PRO")

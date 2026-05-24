@@ -1,7 +1,12 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
-# REAL ICT STRUCTURE VERSION
-# FULL DASHBOARD + WIN RATE + TRADE HISTORY
+# FULL FIXED VERSION
+# XAUUSD FIXED
+# 4H + 1H BIAS
+# LIVE CHART
+# DASHBOARD
+# WIN RATE
+# TELEGRAM
 # =========================================================
 
 # =========================================================
@@ -103,8 +108,8 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
-CHAT_ID = "7790207379"
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 def send_telegram(message):
 
@@ -134,6 +139,19 @@ exchange = ccxt.bybit({
 })
 
 # =========================================================
+# PAIRS
+# =========================================================
+
+PAIRS = {
+    "BTC/USDT": "BTC/USDT",
+    "ETH/USDT": "ETH/USDT",
+    "XRP/USDT": "XRP/USDT",
+    "BNB/USDT": "BNB/USDT",
+    "SOL/USDT": "SOL/USDT",
+    "XAU/USD": "XAUT/USDT"
+}
+
+# =========================================================
 # SIDEBAR
 # =========================================================
 
@@ -141,15 +159,10 @@ st.sidebar.title("BOT SETTINGS")
 
 pair = st.sidebar.selectbox(
     "SELECT PAIR",
-    [
-        "BTC/USDT",
-        "ETH/USDT",
-        "XRP/USDT",
-        "BNB/USDT",
-        "SOL/USDT",
-        "XAU/USD"
-    ]
+    list(PAIRS.keys())
 )
+
+symbol = PAIRS[pair]
 
 ltf_timeframe = st.sidebar.selectbox(
     "SELECT LTF",
@@ -159,15 +172,6 @@ ltf_timeframe = st.sidebar.selectbox(
         "15m"
     ]
 )
-
-# =========================================================
-# GOLD FIX
-# =========================================================
-
-symbol = pair
-
-if pair == "XAU/USD":
-    symbol = "BTC/USDT"
 
 # =========================================================
 # GET DATA
@@ -390,6 +394,10 @@ if (
 
     session = session_filter()
 
+    # =====================================================
+    # BIAS
+    # =====================================================
+
     bias_4h = get_htf_bias(htf_4h)
 
     bias_1h = get_htf_bias(htf_1h)
@@ -400,7 +408,10 @@ if (
     else:
         bias = "NEUTRAL"
 
+    # =====================================================
     # ANALYSIS
+    # =====================================================
+
     poi = get_poi(htf_4h, bias)
 
     current_price = round(
@@ -468,18 +479,21 @@ if (
     c1,c2,c3 = st.columns(3)
 
     with c1:
+
         st.markdown(
             f'<div class="box blue">PAIR<br>{pair}</div>',
             unsafe_allow_html=True
         )
 
     with c2:
+
         st.markdown(
             f'<div class="box green">LIVE PRICE<br>{current_price}</div>',
             unsafe_allow_html=True
         )
 
     with c3:
+
         st.markdown(
             f'<div class="box purple">SESSION<br>{session}</div>',
             unsafe_allow_html=True
@@ -530,7 +544,7 @@ if (
         )
 
     # =====================================================
-    # POI
+    # HTF POI
     # =====================================================
 
     if poi:
@@ -604,7 +618,7 @@ if (
     )
 
     # =====================================================
-    # ENTRY MODEL
+    # ENTRY
     # =====================================================
 
     st.subheader("ENTRY MODEL")
@@ -690,7 +704,7 @@ CONFIDENCE : {confidence}%
         st.warning("NO VALID ICT ENTRY")
 
     # =====================================================
-    # DASHBOARD STATS
+    # DASHBOARD
     # =====================================================
 
     st.subheader("TRADING DASHBOARD")
@@ -711,22 +725,13 @@ CONFIDENCE : {confidence}%
     d1,d2,d3,d4 = st.columns(4)
 
     with d1:
-        st.metric(
-            "TOTAL TRADES",
-            total_trades
-        )
+        st.metric("TOTAL TRADES", total_trades)
 
     with d2:
-        st.metric(
-            "TOTAL WINS",
-            wins
-        )
+        st.metric("TOTAL WINS", wins)
 
     with d3:
-        st.metric(
-            "TOTAL LOSSES",
-            losses
-        )
+        st.metric("TOTAL LOSSES", losses)
 
     with d4:
         st.metric(

@@ -544,14 +544,14 @@ else:
 total_pnl = history["PNL"].sum()
 if entry == "BUY" or entry == "SELL":
 
-    send_telegram(
+    send_telegram
 # =========================
 # ENTRY + TP/SL
 # =========================
 
 entry_price = current_price
 
-if side == "SELL":
+if entry == "SELL":
     tp1 = round(entry_price - 10, 2)
     tp2 = round(entry_price - 20, 2)
     tp3 = round(entry_price - 35, 2)
@@ -621,7 +621,7 @@ STATUS: READY FOR ENTRY
 # =========================
 
 send_telegram(msg)
-    )
+
 
 # =========================================================
 # TITLE

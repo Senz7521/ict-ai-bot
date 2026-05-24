@@ -1,6 +1,7 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
-# FULL PROFESSIONAL SMART MONEY VERSION
+# SMART MONEY CONCEPT VERSION
+# FULL PROFESSIONAL VERSION
 # TOKYO + LONDON + NEW YORK
 # =========================================================
 
@@ -207,7 +208,6 @@ def get_data(symbol,timeframe,limit=200):
     except Exception as e:
 
         st.error(f"DATA ERROR : {e}")
-
         return None
 
 # =========================================================
@@ -255,13 +255,11 @@ def killzone():
 def get_htf_bias(df):
 
     swing_high = df["high"].iloc[-15:-5].max()
-
     swing_low = df["low"].iloc[-15:-5].min()
 
     current_close = df["close"].iloc[-1]
 
     recent_high = df["high"].iloc[-5:].max()
-
     recent_low = df["low"].iloc[-5:].min()
 
     if (
@@ -351,7 +349,6 @@ def detect_mss(df,bias):
     current_close = df["close"].iloc[-1]
 
     swing_high = df["high"].iloc[-5:-1].max()
-
     swing_low = df["low"].iloc[-5:-1].min()
 
     if bias == "BULLISH":
@@ -373,7 +370,6 @@ def detect_mss(df,bias):
 def micro_mss(df,bias):
 
     last_close = df["close"].iloc[-1]
-
     prev_close = df["close"].iloc[-2]
 
     if bias == "BULLISH":
@@ -438,7 +434,6 @@ def displacement(df):
 def pd_array(df):
 
     high = df["high"].iloc[-20:].max()
-
     low = df["low"].iloc[-20:].min()
 
     equilibrium = (high + low) / 2
@@ -501,24 +496,10 @@ if (
     pd_zone = pd_array(htf_4h)
 
     # =====================================================
-    # LIVE TIME
-    # =====================================================
-
-    india_time = datetime.now().strftime("%I:%M:%S %p")
-
-    st.markdown(
-        f'<div class="box red">LIVE INDIA TIME<br>{india_time}</div>',
-        unsafe_allow_html=True
-    )
-
-    # =====================================================
-    # PROFESSIONAL CHART
+    # PROFESSIONAL LIVE CHART
     # =====================================================
 
     st.subheader("LIVE SMART MONEY CHART")
-
-    ltf_df["EMA20"] = ltf_df["close"].ewm(span=20).mean()
-    ltf_df["EMA50"] = ltf_df["close"].ewm(span=50).mean()
 
     fig = go.Figure()
 
@@ -529,29 +510,14 @@ if (
             high=ltf_df["high"],
             low=ltf_df["low"],
             close=ltf_df["close"],
-            increasing_line_color="#00ff99",
-            decreasing_line_color="#ff3366",
+
+            increasing_line_color="#00ff88",
+            decreasing_line_color="#ff3355",
+
+            increasing_fillcolor="#00ff88",
+            decreasing_fillcolor="#ff3355",
+
             name="PRICE"
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=ltf_df["time"],
-            y=ltf_df["EMA20"],
-            mode="lines",
-            line=dict(color="cyan", width=2),
-            name="EMA20"
-        )
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=ltf_df["time"],
-            y=ltf_df["EMA50"],
-            mode="lines",
-            line=dict(color="yellow", width=2),
-            name="EMA50"
         )
     )
 
@@ -560,17 +526,55 @@ if (
         fig.add_hrect(
             y0=poi["low"],
             y1=poi["high"],
+
             fillcolor="yellow",
             opacity=0.12,
+
             line_width=0
         )
 
+    fig.add_hline(
+        y=current_price,
+
+        line_dash="dot",
+
+        line_color="cyan",
+
+        opacity=0.7
+    )
+
     fig.update_layout(
+
         template="plotly_dark",
-        height=800,
+
+        height=780,
+
         xaxis_rangeslider_visible=False,
+
         paper_bgcolor="#0e1117",
-        plot_bgcolor="#0e1117"
+
+        plot_bgcolor="#0e1117",
+
+        font=dict(
+            color="white",
+            size=14
+        ),
+
+        margin=dict(
+            l=10,
+            r=10,
+            t=10,
+            b=10
+        ),
+
+        xaxis=dict(
+            showgrid=False
+        ),
+
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgba(255,255,255,0.05)"
+        )
     )
 
     st.plotly_chart(
@@ -579,10 +583,60 @@ if (
     )
 
     # =====================================================
+    # SESSION TIMINGS
+    # =====================================================
+
+    st.subheader("GLOBAL SESSION TIMINGS")
+
+    t1,t2,t3 = st.columns(3)
+
+    with t1:
+        st.markdown(
+            '''
+            <div class="box blue">
+            TOKYO SESSION<br><br>
+
+            5 AM → 12 PM IST<br><br>
+
+            ASIAN LIQUIDITY
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+
+    with t2:
+        st.markdown(
+            '''
+            <div class="box green">
+            LONDON SESSION<br><br>
+
+            12 PM → 5 PM IST<br><br>
+
+            BEST ICT MOVES
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+
+    with t3:
+        st.markdown(
+            '''
+            <div class="box red">
+            NEW YORK SESSION<br><br>
+
+            5 PM → 10 PM IST<br><br>
+
+            HIGH VOLATILITY
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
+
+    # =====================================================
     # TOP BOXES
     # =====================================================
 
-    c1,c2,c3,c4 = st.columns(4)
+    c1,c2,c3,c4,c5 = st.columns(5)
 
     with c1:
         st.markdown(
@@ -605,6 +659,12 @@ if (
     with c4:
         st.markdown(
             f'<div class="box yellow">KILLZONE<br>{kz}</div>',
+            unsafe_allow_html=True
+        )
+
+    with c5:
+        st.markdown(
+            f'<div class="box red">TIME<br>{datetime.now().strftime("%H:%M:%S")}</div>',
             unsafe_allow_html=True
         )
 
@@ -712,6 +772,7 @@ if (
         score >= 80
         and tapped
         and bias != "NEUTRAL"
+        and bias_4h == bias_1h
     ):
 
         if bias == "BULLISH":
@@ -732,7 +793,7 @@ if (
             tp2 = round(entry - 40,2)
             tp3 = round(entry - 60,2)
 
-        signal = f'''
+        signal = f"""
 
 ICT AI BOT ALERT
 
@@ -749,7 +810,7 @@ TP2 : {tp2}
 TP3 : {tp3}
 
 CONFIDENCE : {score}%
-'''
+"""
 
         st.success(signal)
 

@@ -549,6 +549,7 @@ if entry == "BUY" or entry == "SELL":
 # ENTRY + TP/SL
 # =========================
 
+current_price = price
 entry_price = current_price
 
 if entry == "SELL":
@@ -583,7 +584,7 @@ ICT AI BOT ALERT
 
 PAIR: {symbol}
 
-TRADE TYPE: {side}
+TRADE TYPE: {entry}
 
 ENTRY PRICE: {current_price}
 

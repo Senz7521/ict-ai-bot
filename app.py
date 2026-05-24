@@ -1,8 +1,8 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
 # SMART MONEY CONCEPT VERSION
-# FULL FINAL CLEAN VERSION
-# TOKYO FIXED VERSION
+# FULL PROFESSIONAL VERSION
+# TOKYO + LONDON + NEW YORK
 # =========================================================
 
 # =========================================================
@@ -218,15 +218,12 @@ def session_filter():
 
     india_hour = datetime.now().hour
 
-    # TOKYO SESSION
     if 5 <= india_hour < 12:
         return "TOKYO SESSION"
 
-    # LONDON SESSION
     elif 12 <= india_hour < 17:
         return "LONDON SESSION"
 
-    # NEW YORK SESSION
     elif 17 <= india_hour < 22:
         return "NEW YORK SESSION"
 
@@ -240,15 +237,12 @@ def killzone():
 
     india_hour = datetime.now().hour
 
-    # TOKYO KILLZONE
     if 5 <= india_hour < 8:
         return "TOKYO KILLZONE"
 
-    # LONDON KILLZONE
     elif 13 <= india_hour < 16:
         return "LONDON KILLZONE"
 
-    # NEW YORK KILLZONE
     elif 18 <= india_hour < 21:
         return "NEW YORK KILLZONE"
 
@@ -506,9 +500,14 @@ if (
     displacement_signal = displacement(ltf_df)
     pd_zone = pd_array(htf_4h)
 
-    # LIVE CHART
+    # =====================================================
+    # PROFESSIONAL LIVE CHART
+    # =====================================================
 
-    st.subheader("LIVE CHART")
+    st.subheader("LIVE SMART MONEY CHART")
+
+    ltf_df["EMA20"] = ltf_df["close"].ewm(span=20).mean()
+    ltf_df["EMA50"] = ltf_df["close"].ewm(span=50).mean()
 
     fig = go.Figure()
 
@@ -518,8 +517,71 @@ if (
             open=ltf_df["open"],
             high=ltf_df["high"],
             low=ltf_df["low"],
-            close=ltf_df["close"]
+            close=ltf_df["close"],
+
+            increasing_line_color="#00ff88",
+            decreasing_line_color="#ff3355",
+
+            name="PRICE"
         )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=ltf_df["time"],
+            y=ltf_df["EMA20"],
+
+            mode="lines",
+
+            line=dict(
+                color="cyan",
+                width=2
+            ),
+
+            name="EMA20"
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=ltf_df["time"],
+            y=ltf_df["EMA50"],
+
+            mode="lines",
+
+            line=dict(
+                color="yellow",
+                width=2
+            ),
+
+            name="EMA50"
+        )
+    )
+
+    if poi:
+
+        fig.add_hrect(
+            y0=poi["low"],
+            y1=poi["high"],
+
+            fillcolor="yellow",
+
+            opacity=0.15,
+
+            line_width=0
+        )
+
+    fig.update_layout(
+
+        template="plotly_dark",
+
+        height=750,
+
+        xaxis_rangeslider_visible=False,
+
+        paper_bgcolor="#0e1117",
+
+        plot_bgcolor="#0e1117"
     )
 
     st.plotly_chart(
@@ -527,7 +589,9 @@ if (
         use_container_width=True
     )
 
+    # =====================================================
     # TOP BOXES
+    # =====================================================
 
     c1,c2,c3,c4 = st.columns(4)
 
@@ -555,7 +619,9 @@ if (
             unsafe_allow_html=True
         )
 
+    # =====================================================
     # HTF ANALYSIS
+    # =====================================================
 
     st.subheader("HTF ANALYSIS")
 
@@ -579,7 +645,9 @@ if (
             unsafe_allow_html=True
         )
 
+    # =====================================================
     # SIGNAL BOXES
+    # =====================================================
 
     s1,s2 = st.columns(2)
 
@@ -619,7 +687,9 @@ if (
         unsafe_allow_html=True
     )
 
+    # =====================================================
     # AI CONFIDENCE
+    # =====================================================
 
     score = 0
 
@@ -642,124 +712,3 @@ if (
         f'<div class="box green">AI CONFIDENCE<br>{score}%</div>',
         unsafe_allow_html=True
     )
-
-    # ENTRY MODEL
-
-    st.subheader("ENTRY MODEL")
-
-    if (
-        score >= 80
-        and tapped
-        and bias != "NEUTRAL"
-        and bias_4h == bias_1h
-    ):
-
-        if bias == "BULLISH":
-
-            entry = current_price
-            sl = round(entry - 20,2)
-
-            tp1 = round(entry + 20,2)
-            tp2 = round(entry + 40,2)
-            tp3 = round(entry + 60,2)
-
-        else:
-
-            entry = current_price
-            sl = round(entry + 20,2)
-
-            tp1 = round(entry - 20,2)
-            tp2 = round(entry - 40,2)
-            tp3 = round(entry - 60,2)
-
-        signal = f"""
-
-ICT AI BOT ALERT
-
-PAIR : {pair}
-
-ENTRY : {entry}
-
-SL : {sl}
-
-TP1 : {tp1}
-
-TP2 : {tp2}
-
-TP3 : {tp3}
-
-CONFIDENCE : {score}%
-"""
-
-        st.success(signal)
-
-        if st.session_state.last_signal != signal:
-
-            send_telegram(signal)
-            st.session_state.last_signal = signal
-
-    else:
-
-        st.warning("NO VALID SMART MONEY ENTRY")
-
-    # DASHBOARD
-
-    st.subheader("TRADING DASHBOARD")
-
-    total_trades = 32
-    wins = 24
-    losses = 8
-
-    daily_win_rate = round(
-        (wins / total_trades) * 100,
-        2
-    )
-
-    monthly_profit = random.randint(2000,7000)
-
-    d1,d2,d3,d4 = st.columns(4)
-
-    with d1:
-        st.metric("TOTAL TRADES",total_trades)
-
-    with d2:
-        st.metric("TOTAL WINS",wins)
-
-    with d3:
-        st.metric("TOTAL LOSSES",losses)
-
-    with d4:
-        st.metric(
-            "DAILY WIN RATE",
-            f"{daily_win_rate}%"
-        )
-
-    st.markdown(
-        f'<div class="box green">MONTHLY PROFIT<br>${monthly_profit}</div>',
-        unsafe_allow_html=True
-    )
-
-    # TRADE HISTORY
-
-    st.subheader("TODAY TRADE HISTORY")
-
-    trade_data = pd.DataFrame({
-
-        "PAIR":["BTC","ETH","XAU","SOL","BTC"],
-
-        "TYPE":["BUY","SELL","BUY","SELL","BUY"],
-
-        "RESULT":["WIN","WIN","LOSS","WIN","WIN"],
-
-        "PROFIT":["+120","+90","-40","+150","+70"]
-
-    })
-
-    st.dataframe(
-        trade_data,
-        use_container_width=True
-    )
-
-else:
-
-    st.error("DATA NOT LOADED")

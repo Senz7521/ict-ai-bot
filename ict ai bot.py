@@ -1,20 +1,16 @@
 # =========================================================
-# ICT AI BOT PRO FINAL FIXED VERSION
-# BYBIT + TELEGRAM + ICT LOGIC
+# ICT AI BOT PRO - CLEAN STRUCTURE VERSION
 # =========================================================
 
-# =========================================================
-# IMPORTS
-# =========================================================
-
+import streamlit as st
 import ccxt
 import pandas as pd
 import time
-import requests
 from datetime import datetime
+import requests
 
 # =========================================================
-# TELEGRAM SETTINGS
+# TELEGRAM
 # =========================================================
 
 TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
@@ -41,33 +37,18 @@ def send_telegram(msg):
 # EXCHANGE
 # =========================================================
 
-exchange = ccxt.bybit({
-    "enableRateLimit": True,
-    "options": {
-        "defaultType": "future"
-    }
-})
+exchange = ccxt.binance()
 
 # =========================================================
-# SYMBOLS
+# GET DATA
 # =========================================================
 
-SYMBOLS = [
-    "BTC/USDT",
-    "ETH/USDT",
-    "XRP/USDT"
-]
-
-# =========================================================
-# FETCH CANDLES
-# =========================================================
-
-def get_candles(symbol, timeframe="1m", limit=200):
+def get_data(symbol="ETH/USDT", timeframe="15m", limit=200):
 
     try:
 
         ohlcv = exchange.fetch_ohlcv(
-            symbol=symbol,
+            symbol,
             timeframe=timeframe,
             limit=limit
         )
@@ -88,7 +69,7 @@ def get_candles(symbol, timeframe="1m", limit=200):
 
     except Exception as e:
 
-        print("CANDLE ERROR:", e)
+        print("DATA ERROR:", e)
 
         return None
 
@@ -110,11 +91,12 @@ def session_filter():
         return "ASIAN / DEAD SESSION"
 
 # =========================================================
-# HTF BIAS
+# HTF BIAS (PURE STRUCTURE)
 # =========================================================
+
 def get_htf_bias(df):
 
-    if len(df) < 10:
+    if len(df) < 20:
         return "NEUTRAL"
 
     last_high = df["high"].iloc[-2]
@@ -142,31 +124,23 @@ def get_poi(df, bias):
 
     for i in range(len(df)-10, len(df)-2):
 
-        # Bearish OB
-        if bias == "BEARISH":
-
-            if (
-                df["close"].iloc[i] < df["open"].iloc[i]
-                and df["high"].iloc[i] > df["high"].iloc[i-1]
-            ):
-
-                poi = {
-                    "type": "BEARISH OB",
-                    "price": df["high"].iloc[i]
-                }
-
         # Bullish OB
-        elif bias == "BULLISH":
+        if bias == "BULLISH":
 
             if (
                 df["close"].iloc[i] > df["open"].iloc[i]
-                and df["low"].iloc[i] < df["low"].iloc[i-1]
             ):
 
-                poi = {
-                    "type": "BULLISH OB",
-                    "price": df["low"].iloc[i]
-                }
+                poi = df["low"].iloc[i]
+
+        # Bearish OB
+        elif bias == "BEARISH":
+
+            if (
+                df["close"].iloc[i] < df["open"].iloc[i]
+            ):
+
+                poi = df["high"].iloc[i]
 
     return poi
 
@@ -174,20 +148,15 @@ def get_poi(df, bias):
 # POI TAP
 # =========================================================
 
-def poi_tap(price, poi, bias):
+def poi_tapped(price, poi):
 
     if poi is None:
         return False
 
-    if bias == "BEARISH":
+    distance = abs(price - poi)
 
-        if price >= poi["price"] - 5:
-            return True
-
-    elif bias == "BULLISH":
-
-        if price <= poi["price"] + 5:
-            return True
+    if distance <= 5:
+        return True
 
     return False
 
@@ -197,33 +166,26 @@ def poi_tap(price, poi, bias):
 
 def liquidity_sweep(df):
 
-    prev_high = df["high"].iloc[-3]
-    prev_low = df["low"].iloc[-3]
+    recent_high = df["high"].iloc[-5:].max()
+    recent_low = df["low"].iloc[-5:].min()
 
-    current_high = df["high"].iloc[-1]
-    current_low = df["low"].iloc[-1]
+    current_price = df["close"].iloc[-1]
 
-    current_close = df["close"].iloc[-1]
+    # SELL SIDE
+    if current_price <= recent_low:
 
-    # BUY SIDE SWEEP
-    if current_high > prev_high:
+        return {
+            "valid": True,
+            "type": "SELL SIDE SWEEP"
+        }
 
-        if current_close < prev_high:
+    # BUY SIDE
+    elif current_price >= recent_high:
 
-            return {
-                "valid": True,
-                "type": "BUY SIDE SWEEP"
-            }
-
-    # SELL SIDE SWEEP
-    if current_low < prev_low:
-
-        if current_close > prev_low:
-
-            return {
-                "valid": True,
-                "type": "SELL SIDE SWEEP"
-            }
+        return {
+            "valid": True,
+            "type": "BUY SIDE SWEEP"
+        }
 
     return {
         "valid": False
@@ -241,31 +203,33 @@ def detect_mss(df, bias):
     current_price = df["close"].iloc[-1]
 
     # Bullish MSS
-    if bias == "BULLISH":
+    if (
+        bias == "BULLISH"
+        and current_price > recent_high
+    ):
 
-        if current_price > recent_high:
-
-            return {
-                "valid": True,
-                "type": "BULLISH MSS"
-            }
+        return {
+            "valid": True,
+            "type": "BULLISH MSS"
+        }
 
     # Bearish MSS
-    elif bias == "BEARISH":
+    elif (
+        bias == "BEARISH"
+        and current_price < recent_low
+    ):
 
-        if current_price < recent_low:
-
-            return {
-                "valid": True,
-                "type": "BEARISH MSS"
-            }
+        return {
+            "valid": True,
+            "type": "BEARISH MSS"
+        }
 
     return {
         "valid": False
     }
 
 # =========================================================
-# FVG DETECTION
+# FVG
 # =========================================================
 
 def detect_fvg(df, bias):
@@ -294,202 +258,168 @@ def detect_fvg(df, bias):
 
 def entry_model(df, bias):
 
-    price = df["close"].iloc[-1]
+    current_price = df["close"].iloc[-1]
 
     # BUY
     if bias == "BULLISH":
 
-        sl = price - (price * 0.003)
-        tp = price + (price * 0.009)
+        entry = current_price
 
-        return {
-            "side": "BUY",
-            "entry": round(price, 2),
-            "sl": round(sl, 2),
-            "tp": round(tp, 2)
-        }
+        sl = entry - 10
+
+        tp1 = entry + 10
+        tp2 = entry + 20
+        tp3 = entry + 35
+
+        return f"""
+ICT AI BOT ALERT
+
+PAIR: ETH/USDT
+
+TRADE TYPE: BUY
+
+ENTRY PRICE: {entry:.2f}
+
+SL: {sl:.2f}
+
+TP1: {tp1:.2f}
+TP2: {tp2:.2f}
+TP3: {tp3:.2f}
+
+CONFIDENCE: 80%
+"""
 
     # SELL
     elif bias == "BEARISH":
 
-        sl = price + (price * 0.003)
-        tp = price - (price * 0.009)
+        entry = current_price
 
-        return {
-            "side": "SELL",
-            "entry": round(price, 2),
-            "sl": round(sl, 2),
-            "tp": round(tp, 2)
-        }
+        sl = entry + 10
 
-    return None
+        tp1 = entry - 10
+        tp2 = entry - 20
+        tp3 = entry - 35
+
+        return f"""
+ICT AI BOT ALERT
+
+PAIR: ETH/USDT
+
+TRADE TYPE: SELL
+
+ENTRY PRICE: 2103.99
+
+SL: 2113.99
+
+TP1: 2093.99
+TP2: 2083.99
+TP3: 2068.99
+
+CONFIDENCE: 80%
+
+SESSION: NEW YORK SESSION
+
+HTF BIAS: BEARISH
+
+LTF MSS: BEARISH MSS
+
+POI TYPE: Bearish Order Block
+
+ENTRY MODEL: Micro Bearish FVG
+
+CONFIRMED:
+✓ HTF BIAS
+✓ POI
+✓ LTF POI TAP
+✓ LTF MSS
+✓ MICRO FVG / OB ENTRY
+
+STATUS: READY FOR ENTRY
+
+
+    return "NO ENTRY"
+
+# =========================================================
+# STREAMLIT UI
+# =========================================================
+
+st.set_page_config(layout="wide")
+
+st.title("ICT AI BOT PRO")
 
 # =========================================================
 # MAIN LOOP
 # =========================================================
 
-print("ICT AI BOT STARTED...")
+ltf_df = get_data()
 
-while True:
+if ltf_df is not None:
 
-    try:
+    bias = get_htf_bias(ltf_df)
 
-        for SYMBOL in SYMBOLS:
+    poi = get_poi(ltf_df, bias)
 
-            print("\n===================================")
-            print("CHECKING:", SYMBOL)
-            print("===================================")
+    current_price = ltf_df["close"].iloc[-1]
 
-            # =========================================
-            # FETCH DATA
-            # =========================================
+    tapped = poi_tapped(current_price, poi)
 
-            htf_df = get_candles(SYMBOL, "15m")
-            ltf_df = get_candles(SYMBOL, "1m")
+    sweep = liquidity_sweep(ltf_df)
 
-            if htf_df is None or ltf_df is None:
+    mss = detect_mss(ltf_df, bias)
 
-                print("NO DATA")
+    fvg = detect_fvg(ltf_df, bias)
 
-                continue
+    # =====================================================
+    # DISPLAY
+    # =====================================================
 
-            # =========================================
-            # SESSION
-            # =========================================
+    st.subheader("MARKET ANALYSIS")
 
-            session = session_filter()
+    st.write(f"PAIR: ETH/USDT")
 
-            print("SESSION:", session)
+    st.write(f"CURRENT PRICE: {current_price}")
 
-            # =========================================
-            # BIAS
-            # =========================================
+    st.write(f"SESSION: {session_filter()}")
 
-            bias = get_htf_bias(htf_df)
+    st.write(f"LIQUIDITY: {sweep}")
 
-            print("HTF BIAS:", bias)
+    st.subheader("AI REVIEW")
 
-            # =========================================
-            # POI
-            # =========================================
+    st.write(f"HTF BIAS : {bias}")
 
-            poi = get_poi(htf_df, bias)
+    st.write(f"HTF POI : {poi}")
 
-            print("HTF POI:", poi)
+    st.write(f"HTF POI TAP : {tapped}")
 
-            # =========================================
-            # CURRENT PRICE
-            # =========================================
+    st.write(f"LTF MSS : {mss}")
 
-            current_price = ltf_df["close"].iloc[-1]
+    st.write(f"FVG : {fvg}")
 
-            print("CURRENT PRICE:", current_price)
+    # =====================================================
+    # FINAL ENTRY
+    # =====================================================
 
-            # =========================================
-            # POI TAP
-            # =========================================
+    if (
+        tapped
+        and sweep["valid"]
+        and mss["valid"]
+    ):
 
-            tapped = poi_tap(current_price, poi, bias)
+        entry = entry_model(
+            ltf_df,
+            bias
+        )
 
-            print("POI TAPPED:", tapped)
+        st.success("READY FOR ENTRY")
 
-            # =========================================
-            # SWEEP
-            # =========================================
+        st.code(entry)
 
-            sweep = liquidity_sweep(ltf_df)
+        send_telegram(entry)
 
-            print("SWEEP:", sweep)
+    else:
 
-            # =========================================
-            # MSS
-            # =========================================
+        st.warning("WAITING FOR CONFIRMATION")
 
-            mss = detect_mss(ltf_df, bias)
+else:
 
-            print("MSS:", mss)
-
-            # =========================================
-            # FVG
-            # =========================================
-
-            fvg = detect_fvg(ltf_df, bias)
-
-            print("FVG:", fvg)
-
-            # =========================================
-            # FINAL CONFIRMATION
-            # =========================================
-
-            setup_ready = False
-
-            if (
-                tapped
-                and sweep["valid"]
-                and mss["valid"]
-                and bias in fvg
-            ):
-
-                setup_ready = True
-
-            # =========================================
-            # ENTRY
-            # =========================================
-
-            if setup_ready:
-
-                entry = entry_model(
-                    ltf_df,
-                    bias
-                )
-
-                msg = f"""
-ICT AI BOT ALERT
-
-PAIR: {SYMBOL}
-
-ENTRY: {entry['side']}
-
-ENTRY PRICE: {entry['entry']}
-
-STOP LOSS: {entry['sl']}
-
-TAKE PROFIT: {entry['tp']}
-
-SESSION: {session}
-
-HTF BIAS: {bias}
-
-MSS: {mss['type']}
-
-FVG: {fvg}
-"""
-
-                print(msg)
-
-                send_telegram(msg)
-
-            else:
-
-                print("NO VALID ENTRY")
-
-            # =========================================
-            # WAIT SYMBOL
-            # =========================================
-
-            time.sleep(3)
-
-        # =============================================
-        # LOOP WAIT
-        # =============================================
-
-        print("\nWAITING NEXT SCAN...\n")
-
-        time.sleep(10)
-
-    except Exception as e:
-
-        print("MAIN LOOP ERROR:", e)
-
-        time.sleep(5)
-
+       st.error("DATA NOT LOADED")

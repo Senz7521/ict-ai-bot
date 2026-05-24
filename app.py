@@ -549,13 +549,13 @@ if entry == "BUY" or entry == "SELL":
 # ENTRY + TP/SLs
 # =========================
 
-current_price = 0
-entry_price = current_price
+    current_price = 0
+    entry_price = current_price
 
-if entry == "SELL":
-    tp1 = round(entry_price - 10, 2)
-    tp2 = round(entry_price - 20, 2)
-    tp3 = round(entry_price - 35, 2)
+    if entry == "SELL":
+        tp1 = round(entry_price - 10, 2)
+        tp2 = round(entry_price - 20, 2)
+        tp3 = round(entry_price - 35, 2)
 
     poi_type = "Bearish Order Block"
     entry_model = "Micro Bearish FVG"

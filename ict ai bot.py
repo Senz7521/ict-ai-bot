@@ -117,16 +117,23 @@ def session_filter():
 
 def get_htf_bias(df):
 
-    current_price = df["close"].iloc[-1]
-    ema_200 = df["ema_200"].iloc[-1]
+    def get_htf_bias(df):
 
-    if current_price > ema_200:
-        return "BULLISH"
+        last_high = df["high"].iloc[-2]
+        old_high = df["high"].iloc[-10]
 
-    elif current_price < ema_200:
-        return "BEARISH"
+        last_low = df["low"].iloc[-2]
+        old_low = df["low"].iloc[-10]
 
-    return "NEUTRAL"
+        # Bullish Structure
+        if last_high > old_high:
+            return "BULLISH"
+
+        # Bearish Structure
+        elif last_low < old_low:
+            return "BEARISH"
+
+        return "NEUTRAL"
 
 # =========================================================
 # ORDER BLOCK / POI

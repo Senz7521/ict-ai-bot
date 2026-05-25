@@ -862,10 +862,17 @@ st.markdown(
 )
 
 # =========================================================
-# FINAL ENTRY MODEL
+# FINAL ENTRY MODELS
 # =========================================================
 
-valid_trade = False
+retracement_model = False
+
+continuation_model = False
+
+# =========================================================
+# MODEL 1
+# HTF RETRACEMENT MODEL
+# =========================================================
 
 if (
 
@@ -879,31 +886,267 @@ if (
         "FVG" in str(htf_fvg)
     )
 
-    and htf_tap == "VALID TAP"
+    and
 
-    and "SWEEP" in ltf_sweep
+    htf_tap == "VALID TAP"
 
-    and "MSS" in ltf_mss
+    and
 
-    and "VALID" in ltf_displacement
+    "SWEEP" in ltf_sweep
 
-    and (
+    and
+
+    "MSS" in ltf_mss
+
+    and
+
+    "VALID" in ltf_displacement
+
+    and
+
+    (
         "OB" in str(micro_poi)
         or
         "FVG" in str(micro_fvg)
     )
 
-    and micro_tap == "VALID TAP"
+    and
+
+    micro_tap == "VALID TAP"
 
 ):
 
+    retracement_model = True
+
+# =========================================================
+# MODEL 2
+# CONTINUATION MODEL
+# =========================================================
+
+if (
+
+    bias != "NEUTRAL"
+
+    and
+
+    "MSS" in ltf_mss
+
+    and
+
+    "VALID" in ltf_displacement
+
+    and
+
+    (
+        "OB" in str(micro_poi)
+        or
+        "FVG" in str(micro_fvg)
+    )
+
+    and
+
+    session != "NO SESSION"
+
+):
+
+    continuation_model = True
+
+# =========================================================
+# FINAL TRADE VALIDATION
+# =========================================================
+
+valid_trade = False
+
+entry_model = "NO VALID ENTRY"
+
+if retracement_model:
+
     valid_trade = True
+
+    entry_model = "HTF RETRACEMENT MODEL"
+
+elif continuation_model:
+
+    valid_trade = True
+
+    entry_model = "CONTINUATION MODEL"
+
+# =========================================================
+# ENTRY MODEL BOX
+# =========================================================
+
+st.subheader("ENTRY MODEL")
+
+if valid_trade:
+
+    st.markdown(
+        f'''
+        <div class="box green">
+        {entry_model}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
+
+else:
+
+    st.markdown(
+        '''
+        <div class="box red">
+        NO VALID SMART MONEY ENTRY
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# LIVE TRADE PANEL
+# =========================================================
+
+if valid_trade:
+
+    if bias == "BULLISH":
+
+        entry = current_price
+
+        sl = round(entry - 20,2)
+
+        tp1 = round(entry + 40,2)
+
+    else:
+
+        entry = current_price
+
+        sl = round(entry + 20,2)
+
+        tp1 = round(entry - 40,2)
+
+    profit = round(abs(tp1 - entry),2)
+
+    trade_date = datetime.now().strftime("%d-%m-%Y")
+
+    trade_time = datetime.now().strftime("%H:%M:%S")
+
+    st.subheader("LIVE TRADE PANEL")
+
+    big_box = f"""
+    <div style="
+    background:linear-gradient(135deg,#141e30,#243b55);
+    padding:35px;
+    border-radius:20px;
+    border:2px solid #00c6ff;
+    margin-bottom:25px;
+    ">
+
+    <h1 style="
+    color:#00c6ff;
+    text-align:center;
+    margin-bottom:30px;
+    ">
+    SMART MONEY LIVE TRADE
+    </h1>
+
+    <div style="
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+    ">
+
+    <div class="box blue">
+    DATE<br><br>
+    {trade_date}
+    </div>
+
+    <div class="box purple">
+    TIME<br><br>
+    {trade_time}
+    </div>
+
+    <div class="box green">
+    PAIR<br><br>
+    {pair}
+    </div>
+
+    <div class="box yellow">
+    SESSION<br><br>
+    {session}
+    </div>
+
+    <div class="box blue">
+    ENTRY<br><br>
+    {entry}
+    </div>
+
+    <div class="box red">
+    STOP LOSS<br><br>
+    {sl}
+    </div>
+
+    <div class="box green">
+    TAKE PROFIT<br><br>
+    {tp1}
+    </div>
+
+    <div class="box purple">
+    AI CONFIDENCE<br><br>
+    {score}%
+    </div>
+
+    <div class="box orange">
+    EST PROFIT<br><br>
+    {profit}
+    </div>
+
+    </div>
+
+    </div>
+    """
+
+    st.markdown(
+        big_box,
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# TELEGRAM ALERT
+# =========================================================
+
+    signal = f"""
+
+ICT AI BOT ALERT
+
+ENTRY MODEL : {entry_model}
+
+PAIR : {pair}
+
+ENTRY : {entry}
+
+SL : {sl}
+
+TP : {tp1}
+
+CONFIDENCE : {score}%
+
+SESSION : {session}
+
+"""
+
+    if st.session_state.last_signal != signal:
+
+        send_telegram(signal)
+
+        st.session_state.last_signal = signal
 
 # =========================================================
 # SCORE
 # =========================================================
 
-# ========================================================
+st.markdown(
+    f'<div class="box green">AI CONFIDENCE SCORE<br><br>{score}%</div>',
+    unsafe_allow_html=True
+)
+
+# =========================================================
 # SESSION STATE
 # =========================================================
 

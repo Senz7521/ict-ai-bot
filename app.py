@@ -1,8 +1,6 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
-# SMART MONEY CONCEPT VERSION
-# FULL PROFESSIONAL VERSION
-# TOKYO + LONDON + NEW YORK
+# FULL PROFESSIONAL SMART MONEY VERSION
 # =========================================================
 
 # =========================================================
@@ -18,7 +16,6 @@ import requests
 import plotly.graph_objects as go
 
 from datetime import datetime
-import random
 
 # =========================================================
 # PAGE CONFIG
@@ -48,10 +45,10 @@ st.markdown("""
 }
 
 .big-title{
-    font-size:45px;
+    font-size:42px;
     font-weight:bold;
     padding:20px;
-    border-radius:15px;
+    border-radius:18px;
     background:linear-gradient(90deg,#00c6ff,#0072ff);
     text-align:center;
     margin-bottom:20px;
@@ -59,10 +56,10 @@ st.markdown("""
 
 .box{
     padding:20px;
-    border-radius:15px;
+    border-radius:16px;
     margin-bottom:15px;
     color:white;
-    font-size:20px;
+    font-size:18px;
     font-weight:bold;
     text-align:center;
 }
@@ -88,6 +85,11 @@ st.markdown("""
     background:linear-gradient(90deg,#8E2DE2,#4A00E0);
 }
 
+.orange{
+    background:linear-gradient(90deg,#ff8008,#ffc837);
+    color:black;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,8 +106,8 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8910102188:AAFAQGQKjIOUMB19HHYSQKC4-0fKly3ASxE"
-CHAT_ID = "7790207379"
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 if "last_signal" not in st.session_state:
     st.session_state.last_signal = ""
@@ -164,7 +166,7 @@ pair = st.sidebar.selectbox(
 symbol = PAIRS[pair]
 
 ltf_timeframe = st.sidebar.selectbox(
-    "SELECT LTF",
+    "SELECT TIMEFRAME",
     [
         "1m",
         "5m",
@@ -208,6 +210,7 @@ def get_data(symbol,timeframe,limit=200):
     except Exception as e:
 
         st.error(f"DATA ERROR : {e}")
+
         return None
 
 # =========================================================
@@ -230,25 +233,6 @@ def session_filter():
     return "NO TRADE SESSION"
 
 # =========================================================
-# KILLZONE
-# =========================================================
-
-def killzone():
-
-    india_hour = datetime.now().hour
-
-    if 5 <= india_hour < 8:
-        return "TOKYO KILLZONE"
-
-    elif 13 <= india_hour < 16:
-        return "LONDON KILLZONE"
-
-    elif 18 <= india_hour < 21:
-        return "NEW YORK KILLZONE"
-
-    return "OUTSIDE KILLZONE"
-
-# =========================================================
 # HTF BIAS
 # =========================================================
 
@@ -259,20 +243,11 @@ def get_htf_bias(df):
 
     current_close = df["close"].iloc[-1]
 
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
-
-    if (
-        current_close < swing_low
-        and recent_low < swing_low
-    ):
-        return "BEARISH"
-
-    elif (
-        current_close > swing_high
-        and recent_high > swing_high
-    ):
+    if current_close > swing_high:
         return "BULLISH"
+
+    elif current_close < swing_low:
+        return "BEARISH"
 
     return "NEUTRAL"
 
@@ -288,57 +263,41 @@ def order_block(df,bias):
 
             if (
                 df["close"].iloc[i] < df["open"].iloc[i]
-                and df["close"].iloc[i+1]
-                > df["high"].iloc[i]
+                and df["close"].iloc[i+1] > df["high"].iloc[i]
             ):
 
-                return {
-                    "type":"BULLISH OB",
-                    "high":round(df["high"].iloc[i],2),
-                    "low":round(df["low"].iloc[i],2)
-                }
+                return "BULLISH OB"
 
         elif bias == "BEARISH":
 
             if (
                 df["close"].iloc[i] > df["open"].iloc[i]
-                and df["close"].iloc[i+1]
-                < df["low"].iloc[i]
+                and df["close"].iloc[i+1] < df["low"].iloc[i]
             ):
 
-                return {
-                    "type":"BEARISH OB",
-                    "high":round(df["high"].iloc[i],2),
-                    "low":round(df["low"].iloc[i],2)
-                }
+                return "BEARISH OB"
 
-    return None
+    return "NO OB"
 
 # =========================================================
-# LIQUIDITY SWEEP
+# FVG
 # =========================================================
 
-def liquidity_sweep(df):
+def detect_fvg(df,bias):
 
-    prev_high = df["high"].iloc[-3]
-    prev_low = df["low"].iloc[-3]
+    for i in range(2,len(df)-1):
 
-    current_high = df["high"].iloc[-1]
-    current_low = df["low"].iloc[-1]
+        if bias == "BULLISH":
 
-    current_close = df["close"].iloc[-1]
+            if df["high"].iloc[i-2] < df["low"].iloc[i]:
+                return "BULLISH FVG"
 
-    if current_high > prev_high:
+        elif bias == "BEARISH":
 
-        if current_close < prev_high:
-            return "BUY SIDE LIQUIDITY"
+            if df["low"].iloc[i-2] > df["high"].iloc[i]:
+                return "BEARISH FVG"
 
-    if current_low < prev_low:
-
-        if current_close > prev_low:
-            return "SELL SIDE LIQUIDITY"
-
-    return "NO SWEEP"
+    return "NO FVG"
 
 # =========================================================
 # MSS
@@ -383,26 +342,6 @@ def micro_mss(df,bias):
             return "MICRO BEARISH MSS"
 
     return "NO MICRO MSS"
-
-# =========================================================
-# FVG
-# =========================================================
-
-def detect_fvg(df,bias):
-
-    for i in range(2,len(df)-1):
-
-        if bias == "BULLISH":
-
-            if df["high"].iloc[i-2] < df["low"].iloc[i]:
-                return "BULLISH FVG"
-
-        elif bias == "BEARISH":
-
-            if df["low"].iloc[i-2] > df["high"].iloc[i]:
-                return "BEARISH FVG"
-
-    return "NO FVG"
 
 # =========================================================
 # DISPLACEMENT
@@ -457,14 +396,9 @@ ltf_df = get_data(symbol,ltf_timeframe)
 # MAIN
 # =========================================================
 
-if (
-    htf_4h is not None
-    and htf_1h is not None
-    and ltf_df is not None
-):
+if htf_4h is not None and htf_1h is not None and ltf_df is not None:
 
     session = session_filter()
-    kz = killzone()
 
     bias_4h = get_htf_bias(htf_4h)
     bias_1h = get_htf_bias(htf_1h)
@@ -474,29 +408,63 @@ if (
     else:
         bias = "NEUTRAL"
 
-    poi = order_block(htf_4h,bias)
+    htf_poi = order_block(htf_4h,bias)
+
+    ltf_fvg = detect_fvg(ltf_df,bias)
+
+    ltf_mss = detect_mss(ltf_df,bias)
+
+    ltf_micro = micro_mss(ltf_df,bias)
+
+    displacement_signal = displacement(ltf_df)
+
+    pd_zone = pd_array(htf_4h)
 
     current_price = round(
         float(ltf_df["close"].iloc[-1]),
         2
     )
 
-    tapped = False
+    # =====================================================
+    # AI SCORE
+    # =====================================================
 
-    if poi:
+    score = 0
 
-        if poi["low"] <= current_price <= poi["high"]:
-            tapped = True
+    if bias != "NEUTRAL":
+        score += 20
 
-    mss = detect_mss(ltf_df,bias)
-    micro = micro_mss(ltf_df,bias)
-    fvg = detect_fvg(ltf_df,bias)
-    sweep = liquidity_sweep(ltf_df)
-    displacement_signal = displacement(ltf_df)
-    pd_zone = pd_array(htf_4h)
+    if "MSS" in ltf_mss:
+        score += 20
+
+    if "FVG" in ltf_fvg:
+        score += 20
+
+    if "VALID" in displacement_signal:
+        score += 20
+
+    if "MICRO" in ltf_micro:
+        score += 20
 
     # =====================================================
-    # PROFESSIONAL LIVE CHART
+    # STRICT ENTRY
+    # =====================================================
+
+    valid_trade = False
+
+    if (
+        bias != "NEUTRAL"
+        and "OB" in htf_poi
+        and "FVG" in ltf_fvg
+        and "MSS" in ltf_mss
+        and "MICRO" in ltf_micro
+        and "VALID" in displacement_signal
+        and score >= 80
+    ):
+        valid_trade = True
+
+    # =====================================================
+    # LIVE CHART
     # =====================================================
 
     st.subheader("LIVE SMART MONEY CHART")
@@ -510,71 +478,17 @@ if (
             high=ltf_df["high"],
             low=ltf_df["low"],
             close=ltf_df["close"],
-
             increasing_line_color="#00ff88",
-            decreasing_line_color="#ff3355",
-
-            increasing_fillcolor="#00ff88",
-            decreasing_fillcolor="#ff3355",
-
-            name="PRICE"
+            decreasing_line_color="#ff3355"
         )
-    )
-
-    if poi:
-
-        fig.add_hrect(
-            y0=poi["low"],
-            y1=poi["high"],
-
-            fillcolor="yellow",
-            opacity=0.12,
-
-            line_width=0
-        )
-
-    fig.add_hline(
-        y=current_price,
-
-        line_dash="dot",
-
-        line_color="cyan",
-
-        opacity=0.7
     )
 
     fig.update_layout(
-
         template="plotly_dark",
-
-        height=780,
-
+        height=700,
         xaxis_rangeslider_visible=False,
-
         paper_bgcolor="#0e1117",
-
-        plot_bgcolor="#0e1117",
-
-        font=dict(
-            color="white",
-            size=14
-        ),
-
-        margin=dict(
-            l=10,
-            r=10,
-            t=10,
-            b=10
-        ),
-
-        xaxis=dict(
-            showgrid=False
-        ),
-
-        yaxis=dict(
-            showgrid=True,
-            gridcolor="rgba(255,255,255,0.05)"
-        )
+        plot_bgcolor="#0e1117"
     )
 
     st.plotly_chart(
@@ -583,90 +497,41 @@ if (
     )
 
     # =====================================================
-    # SESSION TIMINGS
+    # MARKET SESSIONS
     # =====================================================
 
-    st.subheader("GLOBAL SESSION TIMINGS")
+    st.subheader("MARKET SESSIONS")
 
-    t1,t2,t3 = st.columns(3)
+    sx1,sx2,sx3 = st.columns(3)
 
-    with t1:
+    with sx1:
         st.markdown(
-            '''
-            <div class="box blue">
-            TOKYO SESSION<br><br>
-
-            5 AM → 12 PM IST<br><br>
-
-            ASIAN LIQUIDITY
-            </div>
-            ''',
+            '<div class="box blue">TOKYO SESSION<br><br>5 AM - 12 PM IST</div>',
             unsafe_allow_html=True
         )
 
-    with t2:
+    with sx2:
         st.markdown(
-            '''
-            <div class="box green">
-            LONDON SESSION<br><br>
-
-            12 PM → 5 PM IST<br><br>
-
-            BEST ICT MOVES
-            </div>
-            ''',
+            '<div class="box green">LONDON SESSION<br><br>12 PM - 5 PM IST</div>',
             unsafe_allow_html=True
         )
 
-    with t3:
+    with sx3:
         st.markdown(
-            '''
-            <div class="box red">
-            NEW YORK SESSION<br><br>
-
-            5 PM → 10 PM IST<br><br>
-
-            HIGH VOLATILITY
-            </div>
-            ''',
+            '<div class="box red">NEW YORK SESSION<br><br>5 PM - 10 PM IST</div>',
             unsafe_allow_html=True
         )
 
     # =====================================================
-    # TOP BOXES
+    # LIVE TIME
     # =====================================================
 
-    c1,c2,c3,c4,c5 = st.columns(5)
+    current_time = datetime.now().strftime("%H:%M:%S")
 
-    with c1:
-        st.markdown(
-            f'<div class="box blue">PAIR<br>{pair}</div>',
-            unsafe_allow_html=True
-        )
-
-    with c2:
-        st.markdown(
-            f'<div class="box green">LIVE PRICE<br>{current_price}</div>',
-            unsafe_allow_html=True
-        )
-
-    with c3:
-        st.markdown(
-            f'<div class="box purple">SESSION<br>{session}</div>',
-            unsafe_allow_html=True
-        )
-
-    with c4:
-        st.markdown(
-            f'<div class="box yellow">KILLZONE<br>{kz}</div>',
-            unsafe_allow_html=True
-        )
-
-    with c5:
-        st.markdown(
-            f'<div class="box red">TIME<br>{datetime.now().strftime("%H:%M:%S")}</div>',
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f'<div class="box orange">LIVE TIME<br><br>{current_time}</div>',
+        unsafe_allow_html=True
+    )
 
     # =====================================================
     # HTF ANALYSIS
@@ -674,216 +539,316 @@ if (
 
     st.subheader("HTF ANALYSIS")
 
-    h1,h2,h3 = st.columns(3)
+    h1,h2,h3,h4 = st.columns(4)
 
     with h1:
-        st.markdown(
-            f'<div class="box green">4H BIAS<br>{bias_4h}</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="box green">4H BIAS<br>{bias_4h}</div>', unsafe_allow_html=True)
 
     with h2:
-        st.markdown(
-            f'<div class="box green">1H BIAS<br>{bias_1h}</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="box blue">1H BIAS<br>{bias_1h}</div>', unsafe_allow_html=True)
 
     with h3:
-        st.markdown(
-            f'<div class="box purple">FINAL BIAS<br>{bias}</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="box purple">FINAL BIAS<br>{bias}</div>', unsafe_allow_html=True)
+
+    with h4:
+        st.markdown(f'<div class="box yellow">HTF POI<br>{htf_poi}</div>', unsafe_allow_html=True)
 
     # =====================================================
-    # SIGNAL BOXES
+    # LTF ANALYSIS
     # =====================================================
 
-    s1,s2 = st.columns(2)
+    st.subheader("LTF ANALYSIS")
 
-    with s1:
-        st.markdown(
-            f'<div class="box yellow">LIQUIDITY SWEEP<br>{sweep}</div>',
-            unsafe_allow_html=True
-        )
+    l1,l2,l3,l4 = st.columns(4)
 
-    with s2:
-        st.markdown(
-            f'<div class="box purple">PD ARRAY<br>{pd_zone}</div>',
-            unsafe_allow_html=True
-        )
+    with l1:
+        st.markdown(f'<div class="box blue">LTF FVG<br>{ltf_fvg}</div>', unsafe_allow_html=True)
 
-    s3,s4 = st.columns(2)
+    with l2:
+        st.markdown(f'<div class="box green">LTF MSS<br>{ltf_mss}</div>', unsafe_allow_html=True)
 
-    with s3:
-        st.markdown(
-            f'<div class="box green">MSS<br>{mss}</div>',
-            unsafe_allow_html=True
-        )
+    with l3:
+        st.markdown(f'<div class="box purple">MICRO MSS<br>{ltf_micro}</div>', unsafe_allow_html=True)
 
-    with s4:
-        st.markdown(
-            f'<div class="box blue">FVG<br>{fvg}</div>',
-            unsafe_allow_html=True
-        )
+    with l4:
+        st.markdown(f'<div class="box yellow">DISPLACEMENT<br>{displacement_signal}</div>', unsafe_allow_html=True)
 
     st.markdown(
-        f'<div class="box purple">MICRO MSS<br>{micro}</div>',
+        f'<div class="box orange">PD ARRAY<br>{pd_zone}</div>',
         unsafe_allow_html=True
     )
 
     st.markdown(
-        f'<div class="box yellow">DISPLACEMENT<br>{displacement_signal}</div>',
+        f'<div class="box green">AI CONFIDENCE SCORE<br>{score}%</div>',
         unsafe_allow_html=True
     )
 
     # =====================================================
-    # AI CONFIDENCE
+    # LIVE DASHBOARD
     # =====================================================
 
-    score = 0
+    if "total_trades" not in st.session_state:
+        st.session_state.total_trades = 0
 
-    if bias != "NEUTRAL":
-        score += 20
+    if "wins" not in st.session_state:
+        st.session_state.wins = 0
 
-    if "MSS" in mss:
-        score += 20
+    if "losses" not in st.session_state:
+        st.session_state.losses = 0
 
-    if "FVG" in fvg:
-        score += 20
+    if "trade_history" not in st.session_state:
 
-    if "LIQUIDITY" in sweep:
-        score += 20
+        st.session_state.trade_history = pd.DataFrame(columns=[
+            "DATE",
+            "TIME",
+            "PAIR",
+            "ENTRY",
+            "TP",
+            "SL",
+            "RESULT"
+        ])
 
-    if "VALID" in displacement_signal:
-        score += 20
+    win_rate = 0
 
-    st.markdown(
-        f'<div class="box green">AI CONFIDENCE<br>{score}%</div>',
-        unsafe_allow_html=True
-    )
+    if st.session_state.total_trades > 0:
+
+        win_rate = round(
+            (
+                st.session_state.wins
+                /
+                st.session_state.total_trades
+            ) * 100,
+            2
+        )
+
+    st.subheader("LIVE TRADING DASHBOARD")
+
+    d1,d2,d3,d4 = st.columns(4)
+
+    with d1:
+        st.markdown(f'<div class="box blue">TOTAL TRADES<br><br>{st.session_state.total_trades}</div>', unsafe_allow_html=True)
+
+    with d2:
+        st.markdown(f'<div class="box green">TOTAL WINS<br><br>{st.session_state.wins}</div>', unsafe_allow_html=True)
+
+    with d3:
+        st.markdown(f'<div class="box red">TOTAL LOSSES<br><br>{st.session_state.losses}</div>', unsafe_allow_html=True)
+
+    with d4:
+        st.markdown(f'<div class="box purple">WIN RATE<br><br>{win_rate}%</div>', unsafe_allow_html=True)
 
     # =====================================================
-    # ENTRY MODEL
+    # LIVE TRADE PANEL
     # =====================================================
 
-    st.subheader("ENTRY MODEL")
+    st.subheader("LIVE TRADE PANEL")
 
-    if (
-        score >= 80
-        and tapped
-        and bias != "NEUTRAL"
-        and bias_4h == bias_1h
-    ):
+    entry = 0
+    sl = 0
+    tp1 = 0
+
+    if valid_trade:
 
         if bias == "BULLISH":
 
             entry = current_price
             sl = round(entry - 20,2)
-
-            tp1 = round(entry + 20,2)
-            tp2 = round(entry + 40,2)
-            tp3 = round(entry + 60,2)
+            tp1 = round(entry + 40,2)
 
         else:
 
             entry = current_price
             sl = round(entry + 20,2)
+            tp1 = round(entry - 40,2)
 
-            tp1 = round(entry - 20,2)
-            tp2 = round(entry - 40,2)
-            tp3 = round(entry - 60,2)
+        profit = round(abs(tp1 - entry),2)
 
-        signal = f"""
+        trade_date = datetime.now().strftime("%d-%m-%Y")
+        trade_time = datetime.now().strftime("%H:%M:%S")
 
-ICT AI BOT ALERT
+        big_box = f"""
+        <div style="
+        background:linear-gradient(135deg,#141e30,#243b55);
+        padding:35px;
+        border-radius:20px;
+        border:2px solid #00c6ff;
+        margin-bottom:25px;
+        ">
 
-PAIR : {pair}
+        <h1 style="
+        color:#00c6ff;
+        text-align:center;
+        margin-bottom:30px;
+        ">
+        SMART MONEY LIVE TRADE
+        </h1>
 
-ENTRY : {entry}
+        <div style="
+        display:grid;
+        grid-template-columns:repeat(3,1fr);
+        gap:20px;
+        ">
 
-SL : {sl}
+        <div class="box blue">
+        DATE<br><br>
+        {trade_date}
+        </div>
 
-TP1 : {tp1}
+        <div class="box purple">
+        TIME<br><br>
+        {trade_time}
+        </div>
 
-TP2 : {tp2}
+        <div class="box green">
+        PAIR<br><br>
+        {pair}
+        </div>
 
-TP3 : {tp3}
+        <div class="box yellow">
+        SESSION<br><br>
+        {session}
+        </div>
 
-CONFIDENCE : {score}%
-"""
+        <div class="box blue">
+        ENTRY<br><br>
+        {entry}
+        </div>
 
-        st.success(signal)
+        <div class="box red">
+        STOP LOSS<br><br>
+        {sl}
+        </div>
 
-        if st.session_state.last_signal != signal:
+        <div class="box green">
+        TAKE PROFIT<br><br>
+        {tp1}
+        </div>
 
-            send_telegram(signal)
-            st.session_state.last_signal = signal
+        <div class="box purple">
+        AI CONFIDENCE<br><br>
+        {score}%
+        </div>
+
+        <div class="box orange">
+        EST PROFIT<br><br>
+        {profit}
+        </div>
+
+        </div>
+
+        </div>
+        """
+
+        st.markdown(
+            big_box,
+            unsafe_allow_html=True
+        )
 
     else:
 
-        st.warning("NO VALID SMART MONEY ENTRY")
-
-    # =====================================================
-    # DASHBOARD
-    # =====================================================
-
-    st.subheader("TRADING DASHBOARD")
-
-    total_trades = 32
-    wins = 24
-    losses = 8
-
-    daily_win_rate = round(
-        (wins / total_trades) * 100,
-        2
-    )
-
-    monthly_profit = random.randint(2000,7000)
-
-    d1,d2,d3,d4 = st.columns(4)
-
-    with d1:
-        st.metric("TOTAL TRADES",total_trades)
-
-    with d2:
-        st.metric("TOTAL WINS",wins)
-
-    with d3:
-        st.metric("TOTAL LOSSES",losses)
-
-    with d4:
-        st.metric(
-            "WIN RATE",
-            f"{daily_win_rate}%"
-        )
-
-    st.markdown(
-        f'<div class="box green">MONTHLY PROFIT<br>${monthly_profit}</div>',
-        unsafe_allow_html=True
-    )
+        st.warning("NO VALID HTF + LTF SMART MONEY ENTRY")
 
     # =====================================================
     # TRADE HISTORY
     # =====================================================
 
-    st.subheader("TODAY TRADE HISTORY")
+    trade_result = "RUNNING"
 
-    trade_data = pd.DataFrame({
+    if valid_trade:
 
-        "PAIR":["BTC","ETH","XAU","SOL","BTC"],
+        if bias == "BULLISH":
 
-        "TYPE":["BUY","SELL","BUY","SELL","BUY"],
+            if current_price >= tp1:
+                trade_result = "TP"
 
-        "RESULT":["WIN","WIN","LOSS","WIN","WIN"],
+            elif current_price <= sl:
+                trade_result = "SL"
 
-        "PROFIT":["+120","+90","-40","+150","+70"]
+        else:
 
-    })
+            if current_price <= tp1:
+                trade_result = "TP"
+
+            elif current_price >= sl:
+                trade_result = "SL"
+
+        if trade_result != "RUNNING":
+
+            new_trade = pd.DataFrame({
+
+                "DATE":[datetime.now().strftime("%d-%m-%Y")],
+
+                "TIME":[datetime.now().strftime("%H:%M:%S")],
+
+                "PAIR":[pair],
+
+                "ENTRY":[entry],
+
+                "TP":[tp1],
+
+                "SL":[sl],
+
+                "RESULT":[trade_result]
+
+            })
+
+            st.session_state.trade_history = pd.concat(
+                [
+                    new_trade,
+                    st.session_state.trade_history
+                ],
+                ignore_index=True
+            )
+
+            st.session_state.trade_history.drop_duplicates(
+                subset=["TIME","PAIR"],
+                inplace=True
+            )
+
+            st.session_state.total_trades += 1
+
+            if trade_result == "TP":
+                st.session_state.wins += 1
+
+            else:
+                st.session_state.losses += 1
+
+    # =====================================================
+    # LIVE TRADE HISTORY
+    # =====================================================
+
+    st.subheader("LIVE TRADE HISTORY")
 
     st.dataframe(
-        trade_data,
+        st.session_state.trade_history,
         use_container_width=True
     )
+
+    # =====================================================
+    # TELEGRAM ALERT
+    # =====================================================
+
+    signal = f"""
+
+ICT AI BOT ALERT
+
+PAIR : {pair}
+
+BIAS : {bias}
+
+SESSION : {session}
+
+PRICE : {current_price}
+
+AI SCORE : {score}%
+
+"""
+
+    if st.session_state.last_signal != signal:
+
+        send_telegram(signal)
+
+        st.session_state.last_signal = signal
 
 else:
 

@@ -783,28 +783,235 @@ st.markdown(f'<div class="box red">NEWS FILTER<br><br>{news_status}</div>',unsaf
 
 st.subheader("LTF ANALYSIS")
 
-l1,l2,l3,l4,l5 = st.columns(5)
+# =========================================================
+# LTF BIAS
+# =========================================================
+
+ltf_bias = "NEUTRAL"
+
+if bias == "BULLISH":
+
+    if current_price > ltf_df["close"].iloc[-5]:
+
+        ltf_bias = "BULLISH"
+
+elif bias == "BEARISH":
+
+    if current_price < ltf_df["close"].iloc[-5]:
+
+        ltf_bias = "BEARISH"
+
+# =========================================================
+# LTF POI
+# =========================================================
+
+ltf_poi = order_block(
+    ltf_df,
+    bias
+)
+
+ltf_fvg = detect_fvg(
+    ltf_df,
+    bias
+)
+
+ltf_poi_box = "NO POI"
+
+if "OB" in str(ltf_poi):
+
+    ltf_poi_box = ltf_poi
+
+elif "FVG" in str(ltf_fvg):
+
+    ltf_poi_box = ltf_fvg
+
+# =========================================================
+# LTF POI TAP
+# =========================================================
+
+ltf_poi_tap = "NO TAP"
+
+if bias == "BULLISH":
+
+    if ltf_df["low"].iloc[-1] <= ltf_df["low"].iloc[-3]:
+
+        ltf_poi_tap = "VALID TAP"
+
+elif bias == "BEARISH":
+
+    if ltf_df["high"].iloc[-1] >= ltf_df["high"].iloc[-3]:
+
+        ltf_poi_tap = "VALID TAP"
+
+# =========================================================
+# LTF DISPLACEMENT
+# =========================================================
+
+ltf_displacement = "NO DISPLACEMENT"
+
+candle_range = (
+    ltf_df["high"].iloc[-1]
+    -
+    ltf_df["low"].iloc[-1]
+)
+
+avg_range = (
+    (
+        ltf_df["high"]
+        -
+        ltf_df["low"]
+    )
+    .rolling(10)
+    .mean()
+    .iloc[-1]
+)
+
+if candle_range > avg_range * 1.5:
+
+    ltf_displacement = "VALID DISPLACEMENT"
+
+# =========================================================
+# LTF MSS
+# =========================================================
+
+ltf_mss = detect_mss(
+    ltf_df,
+    bias
+)
+
+# =========================================================
+# MICRO POI
+# =========================================================
+
+micro_poi = order_block(
+    ltf_df.tail(20),
+    bias
+)
+
+micro_fvg = detect_fvg(
+    ltf_df.tail(20),
+    bias
+)
+
+micro_box = "NO MICRO POI"
+
+if "OB" in str(micro_poi):
+
+    micro_box = micro_poi
+
+elif "FVG" in str(micro_fvg):
+
+    micro_box = micro_fvg
+
+# =========================================================
+# MICRO TAP
+# =========================================================
+
+micro_tap = "NO TAP"
+
+if bias == "BULLISH":
+
+    if ltf_df["low"].iloc[-1] <= ltf_df["low"].iloc[-2]:
+
+        micro_tap = "VALID TAP"
+
+elif bias == "BEARISH":
+
+    if ltf_df["high"].iloc[-1] >= ltf_df["high"].iloc[-2]:
+
+        micro_tap = "VALID TAP"
+
+# =========================================================
+# LTF BOXES
+# =========================================================
+
+l1,l2,l3,l4,l5,l6 = st.columns(6)
 
 with l1:
-    st.markdown(f'<div class="box blue">LTF SWEEP<br><br>{ltf_sweep}</div>',unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box blue">
+        LTF BIAS<br><br>
+        {ltf_bias}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l2:
-    st.markdown(f'<div class="box green">LTF MSS<br><br>{ltf_mss}</div>',unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box green">
+        LTF POI<br><br>
+        {ltf_poi_box}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l3:
-    st.markdown(f'<div class="box purple">DISPLACEMENT<br><br>{ltf_displacement}</div>',unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box yellow">
+        LTF POI TAP<br><br>
+        {ltf_poi_tap}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l4:
-    st.markdown(f'<div class="box yellow">MICRO POI<br><br>{micro_poi}</div>',unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box purple">
+        DISPLACEMENT<br><br>
+        {ltf_displacement}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l5:
-    st.markdown(f'<div class="box orange">MICRO TAP<br><br>{micro_tap}</div>',unsafe_allow_html=True)
 
-st.markdown(f'<div class="box red">MICRO FVG<br><br>{micro_fvg}</div>',unsafe_allow_html=True)
+    st.markdown(
+        f'''
+        <div class="box orange">
+        LTF MSS<br><br>
+        {ltf_mss}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
-st.markdown(f'<div class="box green">AI CONFIDENCE SCORE<br><br>{score}%</div>',unsafe_allow_html=True)
+with l6:
 
-st.markdown(f'<div class="box orange">ENTRY QUALITY<br><br>{quality}</div>',unsafe_allow_html=True)
+    st.markdown(
+        f'''
+        <div class="box red">
+        MICRO POI<br><br>
+        {micro_box}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# MICRO TAP BOX
+# =========================================================
+
+st.markdown(
+    f'''
+    <div class="box green">
+    MICRO TAP<br><br>
+    {micro_tap}
+    </div>
+    ''',
+    unsafe_allow_html=True
+)
 
 # =========================================================
 # ENTRY MODEL

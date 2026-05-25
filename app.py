@@ -350,16 +350,18 @@ def detect_mss(df,bias):
 
     low2 = df["low"].iloc[-3]
 
-    close = df["close"].iloc[-1]
+    current_high = df["high"].iloc[-1]
+
+    current_low = df["low"].iloc[-1]
 
     if bias == "BULLISH":
 
-        if high2 > high1 and close > high2:
+        if high2 > high1 or current_high > high2:
             return "BULLISH MSS"
 
     elif bias == "BEARISH":
 
-        if low2 < low1 and close < low2:
+        if low2 < low1 or current_low < low2:
             return "BEARISH MSS"
 
     return "NO MSS"
@@ -385,6 +387,15 @@ def micro_mss(df,bias):
             return "MICRO BEARISH MSS"
 
     return "NO MICRO MSS"
+
+
+# =========================================================
+# AGGRESSIVE ENTRY SETTINGS
+# =========================================================
+
+USE_MICRO_MSS = True
+USE_INTERNAL_STRUCTURE = True
+AGGRESSIVE_DISPLACEMENT = True
 
 # =========================================================
 # LOAD DATA
@@ -498,7 +509,7 @@ avg_range = (
     .iloc[-1]
 )
 
-if candle_range > avg_range * 1.5:
+if candle_range > avg_range * 1.0:
 
     ltf_displacement = "VALID DISPLACEMENT"
 
@@ -617,11 +628,19 @@ if (
 
     and
 
-    "MSS" in ltf_mss
+    (
+        "MSS" in ltf_mss
+        or
+        "MICRO" in micro_signal
+    )
 
     and
 
-    "VALID" in ltf_displacement
+    (
+        "VALID" in ltf_displacement
+        or
+        "FVG" in str(micro_fvg)
+    )
 
     and
 
@@ -649,11 +668,19 @@ if (
 
     and
 
-    "MSS" in ltf_mss
+    (
+        "MSS" in ltf_mss
+        or
+        "MICRO" in micro_signal
+    )
 
     and
 
-    "VALID" in ltf_displacement
+    (
+        "VALID" in ltf_displacement
+        or
+        "FVG" in str(micro_fvg)
+    )
 
     and
 
@@ -856,7 +883,7 @@ avg_range = (
     .iloc[-1]
 )
 
-if candle_range > avg_range * 1.5:
+if candle_range > avg_range * 1.0:
 
     ltf_displacement = "VALID DISPLACEMENT"
 

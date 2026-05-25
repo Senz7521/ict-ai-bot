@@ -1,7 +1,6 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA
-# FINAL A TO Z VERSION
-# STRICT SMART MONEY MODEL
+# FINAL INSTITUTIONAL VERSION
 # =========================================================
 
 # =========================================================
@@ -124,7 +123,7 @@ def send_telegram(message):
             "text": message
         }
 
-        requests.post(url, data=data)
+        requests.post(url,data=data)
 
     except:
         pass
@@ -207,6 +206,58 @@ def get_data(symbol,timeframe,limit=200):
     return df
 
 # =========================================================
+# DAILY BIAS ENGINE
+# =========================================================
+
+def daily_bias(df):
+
+    pdh = df["high"].iloc[-2]
+
+    pdl = df["low"].iloc[-2]
+
+    current = df["close"].iloc[-1]
+
+    if current > pdh:
+        return "BULLISH DAILY FLOW"
+
+    elif current < pdl:
+        return "BEARISH DAILY FLOW"
+
+    return "RANGING DAILY FLOW"
+
+# =========================================================
+# PREMIUM / DISCOUNT
+# =========================================================
+
+def premium_discount(df):
+
+    high = df["high"].iloc[-50:].max()
+
+    low = df["low"].iloc[-50:].min()
+
+    eq = (high + low) / 2
+
+    current = df["close"].iloc[-1]
+
+    if current > eq:
+        return "PREMIUM"
+
+    return "DISCOUNT"
+
+# =========================================================
+# NEWS FILTER
+# =========================================================
+
+def news_filter():
+
+    hour = datetime.now().hour
+
+    if hour == 18:
+        return "HIGH IMPACT NEWS"
+
+    return "SAFE"
+
+# =========================================================
 # SESSION
 # =========================================================
 
@@ -232,6 +283,7 @@ def session_filter():
 def get_htf_bias(df):
 
     swing_high = df["high"].iloc[-15:-5].max()
+
     swing_low = df["low"].iloc[-15:-5].min()
 
     current_close = df["close"].iloc[-1]
@@ -256,7 +308,8 @@ def order_block(df,bias):
 
             if (
                 df["close"].iloc[i] < df["open"].iloc[i]
-                and df["close"].iloc[i+1] > df["high"].iloc[i]
+                and
+                df["close"].iloc[i+1] > df["high"].iloc[i]
             ):
 
                 return "BULLISH OB"
@@ -265,7 +318,8 @@ def order_block(df,bias):
 
             if (
                 df["close"].iloc[i] > df["open"].iloc[i]
-                and df["close"].iloc[i+1] < df["low"].iloc[i]
+                and
+                df["close"].iloc[i+1] < df["low"].iloc[i]
             ):
 
                 return "BEARISH OB"
@@ -293,24 +347,29 @@ def detect_fvg(df,bias):
     return "NO FVG"
 
 # =========================================================
-# MSS
+# REAL MSS
 # =========================================================
 
 def detect_mss(df,bias):
 
-    current_close = df["close"].iloc[-1]
+    high1 = df["high"].iloc[-5]
 
-    swing_high = df["high"].iloc[-5:-1].max()
-    swing_low = df["low"].iloc[-5:-1].min()
+    high2 = df["high"].iloc[-3]
+
+    low1 = df["low"].iloc[-5]
+
+    low2 = df["low"].iloc[-3]
+
+    close = df["close"].iloc[-1]
 
     if bias == "BULLISH":
 
-        if current_close > swing_high:
+        if high2 > high1 and close > high2:
             return "BULLISH MSS"
 
     elif bias == "BEARISH":
 
-        if current_close < swing_low:
+        if low2 < low1 and close < low2:
             return "BEARISH MSS"
 
     return "NO MSS"
@@ -322,6 +381,7 @@ def detect_mss(df,bias):
 def micro_mss(df,bias):
 
     last_close = df["close"].iloc[-1]
+
     prev_close = df["close"].iloc[-2]
 
     if bias == "BULLISH":
@@ -345,7 +405,7 @@ htf_1h = get_data(symbol,"1h")
 ltf_df = get_data(symbol,ltf_timeframe)
 
 # =========================================================
-# LIVE PRICE
+# PRICE
 # =========================================================
 
 current_price = round(
@@ -372,191 +432,22 @@ else:
     bias = "NEUTRAL"
 
 # =========================================================
+# DAILY FLOW / PD / NEWS
+# =========================================================
+
+daily_flow = daily_bias(htf_4h)
+
+pd_zone = premium_discount(htf_4h)
+
+news_status = news_filter()
+
+# =========================================================
 # HTF
 # =========================================================
 
 htf_poi = order_block(htf_4h,bias)
-htf_fvg = detect_fvg(htf_4h,bias)
-
-htf_poi_tap = False
-
-if bias == "BULLISH":
-
-    if ltf_df["low"].iloc[-1] <= htf_4h["low"].iloc[-5]:
-        htf_poi_tap = True
-
-elif bias == "BEARISH":
-
-    if ltf_df["high"].iloc[-1] >= htf_4h["high"].iloc[-5]:
-        htf_poi_tap = True
-
-# =========================================================
-# LTF
-# =========================================================
-
-ltf_mss = detect_mss(ltf_df,bias)
-
-ltf_poi = order_block(ltf_df,bias)
-
-ltf_poi_tap = False
-
-if bias == "BULLISH":
-
-    if ltf_df["low"].iloc[-1] <= ltf_df["low"].iloc[-5]:
-        ltf_poi_tap = True
-
-elif bias == "BEARISH":
-
-    if ltf_df["high"].iloc[-1] >= ltf_df["high"].iloc[-5]:
-        ltf_poi_tap = True
-
-ltf_micro = micro_mss(ltf_df,bias)
-
-micro_poi = order_block(ltf_df.tail(20),bias)
-
-micro_fvg = detect_fvg(ltf_df.tail(20),bias)
-
-# =========================================================
-# AI SCORE
-# =========================================================
-
-score = 0
-
-if bias != "NEUTRAL":
-    score += 20
-
-if "OB" in str(htf_poi):
-    score += 10
-
-if htf_poi_tap:
-    score += 10
-
-if "MSS" in ltf_mss:
-    score += 20
-
-if "OB" in str(ltf_poi):
-    score += 10
-
-if ltf_poi_tap:
-    score += 10
-
-if "MICRO" in ltf_micro:
-    score += 10
-
-if (
-    "OB" in str(micro_poi)
-    or
-    "FVG" in str(micro_fvg)
-):
-    score += 10
-
-# =========================================================
-# STRICT ENTRY
-# =========================================================
-
-valid_trade = False
-
-if (
-    bias != "NEUTRAL"
-    and "OB" in str(htf_poi)
-    and htf_poi_tap == True
-    and "MSS" in ltf_mss
-    and "OB" in str(ltf_poi)
-    and ltf_poi_tap == True
-    and "MICRO" in ltf_micro
-    and (
-        "OB" in str(micro_poi)
-        or
-        "FVG" in str(micro_fvg)
-    )
-    and score >= 80
-):
-
-    valid_trade = True
-
-# =========================================================
-# TOP BOXES
-# =========================================================
-
-t1,t2,t3,t4 = st.columns(4)
-
-with t1:
-    st.markdown(f'<div class="box blue">PAIR<br><br>{pair}</div>', unsafe_allow_html=True)
-
-with t2:
-    st.markdown(f'<div class="box green">LIVE PRICE<br><br>{current_price}</div>', unsafe_allow_html=True)
-
-with t3:
-    st.markdown(f'<div class="box purple">SESSION<br><br>{session}</div>', unsafe_allow_html=True)
-
-with t4:
-    st.markdown(f'<div class="box orange">LIVE TIME<br><br>{datetime.now().strftime("%H:%M:%S")}</div>', unsafe_allow_html=True)
-
-# =========================================================
-# SESSION BOXES
-# =========================================================
-
-st.subheader("MARKET SESSIONS")
-
-s1,s2,s3 = st.columns(3)
-
-with s1:
-    st.markdown('<div class="box blue">TOKYO SESSION<br><br>5 AM - 12 PM IST</div>', unsafe_allow_html=True)
-
-with s2:
-    st.markdown('<div class="box green">LONDON SESSION<br><br>12 PM - 5 PM IST</div>', unsafe_allow_html=True)
-
-with s3:
-    st.markdown('<div class="box red">NEW YORK SESSION<br><br>5 PM - 10 PM IST</div>', unsafe_allow_html=True)
-
-# =========================================================
-# CHART
-# =========================================================
-
-st.subheader("LIVE SMART MONEY CHART")
-
-fig = go.Figure()
-
-fig.add_trace(
-    go.Candlestick(
-        x=ltf_df["time"],
-        open=ltf_df["open"],
-        high=ltf_df["high"],
-        low=ltf_df["low"],
-        close=ltf_df["close"],
-        increasing_line_color="#00ff88",
-        decreasing_line_color="#ff3355"
-    )
-)
-
-fig.update_layout(
-    template="plotly_dark",
-    height=700,
-    xaxis_rangeslider_visible=False
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
-
-# =========================================================
-# HTF + LTF SMART MONEY FLOW
-# =========================================================
-
-st.subheader("HTF ANALYSIS")
-
-# =========================================================
-# HTF POI
-# =========================================================
-
-htf_poi = order_block(htf_4h,bias)
 
 htf_fvg = detect_fvg(htf_4h,bias)
-
-# =========================================================
-# HTF TAP
-# =========================================================
 
 htf_tap = "NO TAP"
 
@@ -573,114 +464,30 @@ elif bias == "BEARISH":
         htf_tap = "VALID TAP"
 
 # =========================================================
-# HTF BOXES
+# LTF
 # =========================================================
 
-h1,h2,h3,h4,h5 = st.columns(5)
-
-with h1:
-
-    st.markdown(
-        f'''
-        <div class="box green">
-        4H BIAS<br><br>
-        {bias_4h}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with h2:
-
-    st.markdown(
-        f'''
-        <div class="box blue">
-        1H BIAS<br><br>
-        {bias_1h}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with h3:
-
-    st.markdown(
-        f'''
-        <div class="box purple">
-        FINAL BIAS<br><br>
-        {bias}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with h4:
-
-    st.markdown(
-        f'''
-        <div class="box yellow">
-        HTF POI<br><br>
-        {htf_poi}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with h5:
-
-    st.markdown(
-        f'''
-        <div class="box orange">
-        HTF TAP<br><br>
-        {htf_tap}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-# =========================================================
-# LTF ANALYSIS
-# =========================================================
-
-st.subheader("LTF ANALYSIS")
-
-# =========================================================
-# LTF SWEEP
-# =========================================================
+ltf_mss = detect_mss(ltf_df,bias)
 
 ltf_sweep = "NO SWEEP"
 
 prev_high = ltf_df["high"].iloc[-3]
-
 prev_low = ltf_df["low"].iloc[-3]
 
 current_high = ltf_df["high"].iloc[-1]
-
 current_low = ltf_df["low"].iloc[-1]
-
-current_close = ltf_df["close"].iloc[-1]
 
 if current_high > prev_high:
 
-    if current_close < prev_high:
+    if current_price < prev_high:
 
         ltf_sweep = "BUY SIDE SWEEP"
 
 if current_low < prev_low:
 
-    if current_close > prev_low:
+    if current_price > prev_low:
 
         ltf_sweep = "SELL SIDE SWEEP"
-
-# =========================================================
-# LTF MSS
-# =========================================================
-
-ltf_mss = detect_mss(ltf_df,bias)
-
-# =========================================================
-# LTF DISPLACEMENT
-# =========================================================
 
 ltf_displacement = "NO DISPLACEMENT"
 
@@ -705,10 +512,6 @@ if candle_range > avg_range * 1.5:
 
     ltf_displacement = "VALID DISPLACEMENT"
 
-# =========================================================
-# MICRO POI
-# =========================================================
-
 micro_poi = order_block(
     ltf_df.tail(20),
     bias
@@ -719,9 +522,10 @@ micro_fvg = detect_fvg(
     bias
 )
 
-# =========================================================
-# MICRO TAP
-# =========================================================
+micro_signal = micro_mss(
+    ltf_df,
+    bias
+)
 
 micro_tap = "NO TAP"
 
@@ -736,86 +540,6 @@ elif bias == "BEARISH":
     if ltf_df["high"].iloc[-1] >= ltf_df["high"].iloc[-2]:
 
         micro_tap = "VALID TAP"
-
-# =========================================================
-# LTF BOXES
-# =========================================================
-
-l1,l2,l3,l4,l5 = st.columns(5)
-
-with l1:
-
-    st.markdown(
-        f'''
-        <div class="box blue">
-        LTF SWEEP<br><br>
-        {ltf_sweep}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with l2:
-
-    st.markdown(
-        f'''
-        <div class="box green">
-        LTF MSS<br><br>
-        {ltf_mss}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with l3:
-
-    st.markdown(
-        f'''
-        <div class="box purple">
-        DISPLACEMENT<br><br>
-        {ltf_displacement}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with l4:
-
-    st.markdown(
-        f'''
-        <div class="box yellow">
-        MICRO POI<br><br>
-        {micro_poi}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-with l5:
-
-    st.markdown(
-        f'''
-        <div class="box orange">
-        MICRO TAP<br><br>
-        {micro_tap}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-# =========================================================
-# MICRO FVG BOX
-# =========================================================
-
-st.markdown(
-    f'''
-    <div class="box red">
-    MICRO FVG<br><br>
-    {micro_fvg}
-    </div>
-    ''',
-    unsafe_allow_html=True
-)
 
 # =========================================================
 # AI SCORE
@@ -847,23 +571,43 @@ if "FVG" in str(micro_fvg):
 if micro_tap == "VALID TAP":
     score += 5
 
+# =========================================================
+# ENTRY QUALITY
+# =========================================================
+
+quality = "C"
+
+if score >= 90:
+    quality = "A+"
+
+elif score >= 80:
+    quality = "A"
+
+elif score >= 70:
+    quality = "B"
 
 # =========================================================
-# FINAL ENTRY MODELS
+# ENTRY MODELS
 # =========================================================
 
 retracement_model = False
-
 continuation_model = False
-
-# =========================================================
-# MODEL 1
-# HTF RETRACEMENT MODEL
-# =========================================================
 
 if (
 
     bias != "NEUTRAL"
+
+    and
+
+    news_status == "SAFE"
+
+    and
+
+    (
+        (bias == "BULLISH" and pd_zone == "DISCOUNT")
+        or
+        (bias == "BEARISH" and pd_zone == "PREMIUM")
+    )
 
     and
 
@@ -905,14 +649,13 @@ if (
 
     retracement_model = True
 
-# =========================================================
-# MODEL 2
-# CONTINUATION MODEL
-# =========================================================
-
 if (
 
     bias != "NEUTRAL"
+
+    and
+
+    news_status == "SAFE"
 
     and
 
@@ -938,10 +681,6 @@ if (
 
     continuation_model = True
 
-# =========================================================
-# FINAL TRADE VALIDATION
-# =========================================================
-
 valid_trade = False
 
 entry_model = "NO VALID ENTRY"
@@ -949,17 +688,126 @@ entry_model = "NO VALID ENTRY"
 if retracement_model:
 
     valid_trade = True
-
     entry_model = "HTF RETRACEMENT MODEL"
 
 elif continuation_model:
 
     valid_trade = True
-
     entry_model = "CONTINUATION MODEL"
 
 # =========================================================
-# ENTRY MODEL BOX
+# TOP BOXES
+# =========================================================
+
+t1,t2,t3,t4 = st.columns(4)
+
+with t1:
+    st.markdown(f'<div class="box blue">PAIR<br><br>{pair}</div>',unsafe_allow_html=True)
+
+with t2:
+    st.markdown(f'<div class="box green">LIVE PRICE<br><br>{current_price}</div>',unsafe_allow_html=True)
+
+with t3:
+    st.markdown(f'<div class="box purple">SESSION<br><br>{session}</div>',unsafe_allow_html=True)
+
+with t4:
+    st.markdown(f'<div class="box orange">LIVE TIME<br><br>{datetime.now().strftime("%H:%M:%S")}</div>',unsafe_allow_html=True)
+
+# =========================================================
+# CHART
+# =========================================================
+
+st.subheader("LIVE SMART MONEY CHART")
+
+fig = go.Figure()
+
+fig.add_trace(
+    go.Candlestick(
+        x=ltf_df["time"],
+        open=ltf_df["open"],
+        high=ltf_df["high"],
+        low=ltf_df["low"],
+        close=ltf_df["close"]
+    )
+)
+
+fig.add_hline(
+    y=current_price,
+    line_dash="dot",
+    line_color="yellow"
+)
+
+fig.update_layout(
+    template="plotly_dark",
+    height=700,
+    xaxis_rangeslider_visible=False
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# =========================================================
+# HTF ANALYSIS
+# =========================================================
+
+st.subheader("HTF ANALYSIS")
+
+h1,h2,h3,h4,h5 = st.columns(5)
+
+with h1:
+    st.markdown(f'<div class="box green">4H BIAS<br><br>{bias_4h}</div>',unsafe_allow_html=True)
+
+with h2:
+    st.markdown(f'<div class="box blue">1H BIAS<br><br>{bias_1h}</div>',unsafe_allow_html=True)
+
+with h3:
+    st.markdown(f'<div class="box purple">FINAL BIAS<br><br>{bias}</div>',unsafe_allow_html=True)
+
+with h4:
+    st.markdown(f'<div class="box yellow">HTF POI<br><br>{htf_poi}</div>',unsafe_allow_html=True)
+
+with h5:
+    st.markdown(f'<div class="box orange">HTF TAP<br><br>{htf_tap}</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box blue">DAILY FLOW<br><br>{daily_flow}</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box purple">PD ARRAY<br><br>{pd_zone}</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box red">NEWS FILTER<br><br>{news_status}</div>',unsafe_allow_html=True)
+
+# =========================================================
+# LTF ANALYSIS
+# =========================================================
+
+st.subheader("LTF ANALYSIS")
+
+l1,l2,l3,l4,l5 = st.columns(5)
+
+with l1:
+    st.markdown(f'<div class="box blue">LTF SWEEP<br><br>{ltf_sweep}</div>',unsafe_allow_html=True)
+
+with l2:
+    st.markdown(f'<div class="box green">LTF MSS<br><br>{ltf_mss}</div>',unsafe_allow_html=True)
+
+with l3:
+    st.markdown(f'<div class="box purple">DISPLACEMENT<br><br>{ltf_displacement}</div>',unsafe_allow_html=True)
+
+with l4:
+    st.markdown(f'<div class="box yellow">MICRO POI<br><br>{micro_poi}</div>',unsafe_allow_html=True)
+
+with l5:
+    st.markdown(f'<div class="box orange">MICRO TAP<br><br>{micro_tap}</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box red">MICRO FVG<br><br>{micro_fvg}</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box green">AI CONFIDENCE SCORE<br><br>{score}%</div>',unsafe_allow_html=True)
+
+st.markdown(f'<div class="box orange">ENTRY QUALITY<br><br>{quality}</div>',unsafe_allow_html=True)
+
+# =========================================================
+# ENTRY MODEL
 # =========================================================
 
 st.subheader("ENTRY MODEL")
@@ -995,108 +843,30 @@ if valid_trade:
     if bias == "BULLISH":
 
         entry = current_price
-
         sl = round(entry - 20,2)
-
         tp1 = round(entry + 40,2)
 
     else:
 
         entry = current_price
-
         sl = round(entry + 20,2)
-
         tp1 = round(entry - 40,2)
 
     profit = round(abs(tp1 - entry),2)
 
-    trade_date = datetime.now().strftime("%d-%m-%Y")
-
-    trade_time = datetime.now().strftime("%H:%M:%S")
-
     st.subheader("LIVE TRADE PANEL")
 
-    big_box = f"""
-    <div style="
-    background:linear-gradient(135deg,#141e30,#243b55);
-    padding:35px;
-    border-radius:20px;
-    border:2px solid #00c6ff;
-    margin-bottom:25px;
-    ">
-
-    <h1 style="
-    color:#00c6ff;
-    text-align:center;
-    margin-bottom:30px;
-    ">
-    SMART MONEY LIVE TRADE
-    </h1>
-
-    <div style="
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:20px;
-    ">
-
-    <div class="box blue">
-    DATE<br><br>
-    {trade_date}
-    </div>
-
-    <div class="box purple">
-    TIME<br><br>
-    {trade_time}
-    </div>
-
-    <div class="box green">
-    PAIR<br><br>
-    {pair}
-    </div>
-
-    <div class="box yellow">
-    SESSION<br><br>
-    {session}
-    </div>
-
-    <div class="box blue">
-    ENTRY<br><br>
-    {entry}
-    </div>
-
-    <div class="box red">
-    STOP LOSS<br><br>
-    {sl}
-    </div>
-
-    <div class="box green">
-    TAKE PROFIT<br><br>
-    {tp1}
-    </div>
-
-    <div class="box purple">
-    AI CONFIDENCE<br><br>
-    {score}%
-    </div>
-
-    <div class="box orange">
-    EST PROFIT<br><br>
-    {profit}
-    </div>
-
-    </div>
-
-    </div>
-    """
-
     st.markdown(
-        big_box,
+        f'''
+        <div class="box blue">
+        ENTRY : {entry}<br><br>
+        SL : {sl}<br><br>
+        TP : {tp1}<br><br>
+        EST PROFIT : {profit}
+        </div>
+        ''',
         unsafe_allow_html=True
     )
-
-# =========================================================
-# TELEGRAM ALERT
-# =========================================================
 
     signal = f"""
 
@@ -1106,170 +876,33 @@ ENTRY MODEL : {entry_model}
 
 PAIR : {pair}
 
-ENTRY : {entry}
-
-SL : {sl}
-
-TP : {tp1}
-
-CONFIDENCE : {score}%
-
-SESSION : {session}
-
-"""
-
-    if st.session_state.last_signal != signal:
-
-        send_telegram(signal)
-
-        st.session_state.last_signal = signal
-
-# =========================================================
-# SCORE
-# =========================================================
-
-st.markdown(
-    f'<div class="box green">AI CONFIDENCE SCORE<br><br>{score}%</div>',
-    unsafe_allow_html=True
-)
-
-# =========================================================
-# SESSION STATE
-# =========================================================
-
-if "total_trades" not in st.session_state:
-    st.session_state.total_trades = 0
-
-if "wins" not in st.session_state:
-    st.session_state.wins = 0
-
-if "losses" not in st.session_state:
-    st.session_state.losses = 0
-
-if "trade_history" not in st.session_state:
-
-    st.session_state.trade_history = pd.DataFrame(columns=[
-        "DATE",
-        "TIME",
-        "PAIR",
-        "ENTRY",
-        "TP",
-        "SL",
-        "RESULT"
-    ])
-
-# =========================================================
-# LIVE TRADE PANEL
-# =========================================================
-
-st.subheader("LIVE TRADE PANEL")
-
-if valid_trade:
-
-    if bias == "BULLISH":
-
-        entry = current_price
-        sl = round(entry - 20,2)
-        tp1 = round(entry + 40,2)
-
-    else:
-
-        entry = current_price
-        sl = round(entry + 20,2)
-        tp1 = round(entry - 40,2)
-
-    profit = round(abs(tp1 - entry),2)
-
-    big_box = f"""
-    <div style="
-    background:linear-gradient(135deg,#141e30,#243b55);
-    padding:35px;
-    border-radius:20px;
-    border:2px solid #00c6ff;
-    margin-bottom:25px;
-    ">
-
-    <h1 style="
-    color:#00c6ff;
-    text-align:center;
-    margin-bottom:30px;
-    ">
-    SMART MONEY LIVE TRADE
-    </h1>
-
-    <div style="
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:20px;
-    ">
-
-    <div class="box blue">
-    DATE<br><br>
-    {datetime.now().strftime("%d-%m-%Y")}
-    </div>
-
-    <div class="box purple">
-    TIME<br><br>
-    {datetime.now().strftime("%H:%M:%S")}
-    </div>
-
-    <div class="box green">
-    PAIR<br><br>
-    {pair}
-    </div>
-
-    <div class="box yellow">
-    SESSION<br><br>
-    {session}
-    </div>
-
-    <div class="box blue">
-    ENTRY<br><br>
-    {entry}
-    </div>
-
-    <div class="box red">
-    SL<br><br>
-    {sl}
-    </div>
-
-    <div class="box green">
-    TP<br><br>
-    {tp1}
-    </div>
-
-    <div class="box purple">
-    CONFIDENCE<br><br>
-    {score}%
-    </div>
-
-    <div class="box orange">
-    PROFIT<br><br>
-    {profit}
-    </div>
-
-    </div>
-
-    </div>
-    """
-
-    st.markdown(big_box, unsafe_allow_html=True)
-
-    signal = f"""
-
-ICT AI BOT ALERT
-
-PAIR : {pair}
+TRADE TYPE : {"BUY" if bias=="BULLISH" else "SELL"}
 
 ENTRY : {entry}
 
 SL : {sl}
 
-TP : {tp1}
+TP1 : {tp1}
 
-CONFIDENCE : {score}%
+AI CONFIDENCE : {score}%
+
+ENTRY QUALITY : {quality}
 
 SESSION : {session}
+
+DAILY FLOW : {daily_flow}
+
+PD ARRAY : {pd_zone}
+
+NEWS STATUS : {news_status}
+
+HTF BIAS : {bias}
+
+LTF MSS : {ltf_mss}
+
+MICRO FVG : {micro_fvg}
+
+STATUS : READY FOR ENTRY
 
 """
 
@@ -1287,6 +920,15 @@ else:
 # DASHBOARD
 # =========================================================
 
+if "total_trades" not in st.session_state:
+    st.session_state.total_trades = 0
+
+if "wins" not in st.session_state:
+    st.session_state.wins = 0
+
+if "losses" not in st.session_state:
+    st.session_state.losses = 0
+
 win_rate = 0
 
 if st.session_state.total_trades > 0:
@@ -1300,29 +942,22 @@ if st.session_state.total_trades > 0:
         2
     )
 
-st.subheader("LIVE TRADING DASHBOARD")
+st.subheader("BACKTEST RESULTS")
 
-d1,d2,d3,d4 = st.columns(4)
+b1,b2,b3 = st.columns(3)
 
-with d1:
-    st.markdown(f'<div class="box blue">TOTAL TRADES<br><br>{st.session_state.total_trades}</div>', unsafe_allow_html=True)
+with b1:
+    st.markdown(f'<div class="box blue">WIN RATE<br><br>{win_rate}%</div>',unsafe_allow_html=True)
 
-with d2:
-    st.markdown(f'<div class="box green">TOTAL WINS<br><br>{st.session_state.wins}</div>', unsafe_allow_html=True)
+with b2:
+    st.markdown('<div class="box green">RISK REWARD<br><br>1:2</div>',unsafe_allow_html=True)
 
-with d3:
-    st.markdown(f'<div class="box red">TOTAL LOSSES<br><br>{st.session_state.losses}</div>', unsafe_allow_html=True)
+with b3:
 
-with d4:
-    st.markdown(f'<div class="box purple">WIN RATE<br><br>{win_rate}%</div>', unsafe_allow_html=True)
+    pnl = (
+        st.session_state.wins * 40
+        -
+        st.session_state.losses * 20
+    )
 
-# =========================================================
-# LIVE TRADE HISTORY
-# =========================================================
-
-st.subheader("LIVE TRADE HISTORY")
-
-st.dataframe(
-    st.session_state.trade_history,
-    use_container_width=True
-)
+    st.markdown(f'<div class="box purple">EST PNL<br><br>{pnl}</div>',unsafe_allow_html=True)

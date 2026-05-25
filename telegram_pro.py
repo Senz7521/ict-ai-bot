@@ -10,8 +10,8 @@ from datetime import datetime
 # TELEGRAM CONFIG
 # =========================================================
 
-TOKEN = "YOUR_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TOKEN = "8854671551:AAGOwQ3waewFoQzadtwuJRBAVJNEOPKUkx0"
+CHAT_ID = "5240659041"
 
 # =========================================================
 # SEND TELEGRAM

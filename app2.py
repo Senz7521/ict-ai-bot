@@ -546,27 +546,90 @@ st.plotly_chart(
 
 st.subheader("HTF ANALYSIS")
 
-h1,h2,h3,h4 = st.columns(4)
+# HTF POI
+htf_poi = order_block(htf_4h,bias)
+
+# HTF FVG
+htf_fvg = detect_fvg(htf_4h,bias)
+
+# HTF TAP
+htf_tap = False
+
+if bias == "BULLISH":
+
+    if ltf_df["low"].iloc[-1] <= htf_4h["low"].iloc[-5]:
+        htf_tap = True
+
+elif bias == "BEARISH":
+
+    if ltf_df["high"].iloc[-1] >= htf_4h["high"].iloc[-5]:
+        htf_tap = True
+
+# =========================================================
+# HTF BOXES
+# =========================================================
+
+h1,h2,h3,h4,h5 = st.columns(5)
 
 with h1:
-    st.markdown(f'<div class="box green">4H BIAS<br><br>{bias_4h}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box green">
+        4H BIAS<br><br>
+        {bias_4h}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with h2:
-    st.markdown(f'<div class="box blue">1H BIAS<br><br>{bias_1h}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box blue">
+        1H BIAS<br><br>
+        {bias_1h}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with h3:
-    st.markdown(f'<div class="box purple">FINAL BIAS<br><br>{bias}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box purple">
+        FINAL BIAS<br><br>
+        {bias}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with h4:
-    st.markdown(f'<div class="box yellow">HTF POI<br><br>{htf_poi}</div>', unsafe_allow_html=True)
 
-h5,h6 = st.columns(2)
+    st.markdown(
+        f'''
+        <div class="box yellow">
+        HTF POI<br><br>
+        {htf_poi}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with h5:
-    st.markdown(f'<div class="box orange">HTF FVG<br><br>{htf_fvg}</div>', unsafe_allow_html=True)
 
-with h6:
-    st.markdown(f'<div class="box red">HTF POI TAP<br><br>{"VALID TAP" if htf_poi_tap else "NO TAP"}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'''
+        <div class="box orange">
+        HTF TAP<br><br>
+        {"VALID TAP" if htf_tap else "NO TAP"}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 # =========================================================
 # LTF ANALYSIS
@@ -574,27 +637,177 @@ with h6:
 
 st.subheader("LTF ANALYSIS")
 
-l1,l2,l3,l4 = st.columns(4)
+# LTF SWEEP
+ltf_sweep = "NO SWEEP"
+
+prev_high = ltf_df["high"].iloc[-3]
+prev_low = ltf_df["low"].iloc[-3]
+
+current_high = ltf_df["high"].iloc[-1]
+current_low = ltf_df["low"].iloc[-1]
+
+current_close = ltf_df["close"].iloc[-1]
+
+if current_high > prev_high:
+
+    if current_close < prev_high:
+        ltf_sweep = "BUY SIDE SWEEP"
+
+if current_low < prev_low:
+
+    if current_close > prev_low:
+        ltf_sweep = "SELL SIDE SWEEP"
+
+# =========================================================
+# LTF MSS
+# =========================================================
+
+ltf_mss = detect_mss(ltf_df,bias)
+
+# =========================================================
+# LTF DISPLACEMENT
+# =========================================================
+
+displacement = "NO DISPLACEMENT"
+
+candle_range = (
+    ltf_df["high"].iloc[-1]
+    - ltf_df["low"].iloc[-1]
+)
+
+avg_range = (
+    (ltf_df["high"] - ltf_df["low"])
+    .rolling(10)
+    .mean()
+    .iloc[-1]
+)
+
+if candle_range > avg_range * 1.5:
+
+    displacement = "VALID DISPLACEMENT"
+
+# =========================================================
+# MICRO FVG
+# =========================================================
+
+micro_fvg = detect_fvg(
+    ltf_df.tail(20),
+    bias
+)
+
+# =========================================================
+# MICRO TAP
+# =========================================================
+
+micro_tap = False
+
+if bias == "BULLISH":
+
+    if ltf_df["low"].iloc[-1] <= ltf_df["low"].iloc[-2]:
+        micro_tap = True
+
+elif bias == "BEARISH":
+
+    if ltf_df["high"].iloc[-1] >= ltf_df["high"].iloc[-2]:
+        micro_tap = True
+
+# =========================================================
+# LTF BOXES
+# =========================================================
+
+l1,l2,l3,l4,l5 = st.columns(5)
 
 with l1:
-    st.markdown(f'<div class="box blue">LTF MSS<br><br>{ltf_mss}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box blue">
+        LTF SWEEP<br><br>
+        {ltf_sweep}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l2:
-    st.markdown(f'<div class="box green">LTF POI<br><br>{ltf_poi}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box green">
+        LTF MSS<br><br>
+        {ltf_mss}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l3:
-    st.markdown(f'<div class="box purple">LTF POI TAP<br><br>{"VALID TAP" if ltf_poi_tap else "NO TAP"}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'''
+        <div class="box purple">
+        DISPLACEMENT<br><br>
+        {displacement}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l4:
-    st.markdown(f'<div class="box yellow">MICRO MSS<br><br>{ltf_micro}</div>', unsafe_allow_html=True)
 
-l5,l6 = st.columns(2)
+    st.markdown(
+        f'''
+        <div class="box yellow">
+        MICRO FVG<br><br>
+        {micro_fvg}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 with l5:
-    st.markdown(f'<div class="box orange">MICRO POI<br><br>{micro_poi}</div>', unsafe_allow_html=True)
 
-with l6:
-    st.markdown(f'<div class="box red">MICRO FVG<br><br>{micro_fvg}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'''
+        <div class="box orange">
+        MICRO TAP<br><br>
+        {"VALID TAP" if micro_tap else "NO TAP"}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
+
+# =========================================================
+# FINAL ENTRY MODEL
+# =========================================================
+
+valid_trade = False
+
+if (
+    bias != "NEUTRAL"
+
+    and (
+        "OB" in str(htf_poi)
+        or
+        "FVG" in str(htf_fvg)
+    )
+
+    and htf_tap == True
+
+    and "SWEEP" in ltf_sweep
+
+    and "MSS" in ltf_mss
+
+    and "VALID" in displacement
+
+    and (
+        "FVG" in str(micro_fvg)
+    )
+
+    and micro_tap == True
+):
+
+    valid_trade = True
 
 # =========================================================
 # SCORE

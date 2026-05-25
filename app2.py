@@ -106,8 +106,8 @@ st.markdown(
 # TELEGRAM
 # =========================================================
 
-TOKEN = "8854671551:AAGOwQ3waewFoQzadtwuJRBAVJNEOPKUkx0"
-CHAT_ID = "5240659041"
+TOKEN = "YOUR_BOT_TOKEN"
+CHAT_ID = "YOUR_CHAT_ID"
 
 if "last_signal" not in st.session_state:
     st.session_state.last_signal = ""
@@ -497,6 +497,43 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     )
 
     # =====================================================
+    # MARKET SESSIONS
+    # =====================================================
+
+    st.subheader("MARKET SESSIONS")
+
+    sx1,sx2,sx3 = st.columns(3)
+
+    with sx1:
+        st.markdown(
+            '<div class="box blue">TOKYO SESSION<br><br>5 AM - 12 PM IST</div>',
+            unsafe_allow_html=True
+        )
+
+    with sx2:
+        st.markdown(
+            '<div class="box green">LONDON SESSION<br><br>12 PM - 5 PM IST</div>',
+            unsafe_allow_html=True
+        )
+
+    with sx3:
+        st.markdown(
+            '<div class="box red">NEW YORK SESSION<br><br>5 PM - 10 PM IST</div>',
+            unsafe_allow_html=True
+        )
+
+    # =====================================================
+    # LIVE TIME
+    # =====================================================
+
+    current_time = datetime.now().strftime("%H:%M:%S")
+
+    st.markdown(
+        f'<div class="box orange">LIVE TIME<br><br>{current_time}</div>',
+        unsafe_allow_html=True
+    )
+
+    # =====================================================
     # HTF ANALYSIS
     # =====================================================
 
@@ -547,10 +584,68 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     )
 
     # =====================================================
+    # LIVE DASHBOARD
+    # =====================================================
+
+    if "total_trades" not in st.session_state:
+        st.session_state.total_trades = 0
+
+    if "wins" not in st.session_state:
+        st.session_state.wins = 0
+
+    if "losses" not in st.session_state:
+        st.session_state.losses = 0
+
+    if "trade_history" not in st.session_state:
+
+        st.session_state.trade_history = pd.DataFrame(columns=[
+            "DATE",
+            "TIME",
+            "PAIR",
+            "ENTRY",
+            "TP",
+            "SL",
+            "RESULT"
+        ])
+
+    win_rate = 0
+
+    if st.session_state.total_trades > 0:
+
+        win_rate = round(
+            (
+                st.session_state.wins
+                /
+                st.session_state.total_trades
+            ) * 100,
+            2
+        )
+
+    st.subheader("LIVE TRADING DASHBOARD")
+
+    d1,d2,d3,d4 = st.columns(4)
+
+    with d1:
+        st.markdown(f'<div class="box blue">TOTAL TRADES<br><br>{st.session_state.total_trades}</div>', unsafe_allow_html=True)
+
+    with d2:
+        st.markdown(f'<div class="box green">TOTAL WINS<br><br>{st.session_state.wins}</div>', unsafe_allow_html=True)
+
+    with d3:
+        st.markdown(f'<div class="box red">TOTAL LOSSES<br><br>{st.session_state.losses}</div>', unsafe_allow_html=True)
+
+    with d4:
+        st.markdown(f'<div class="box purple">WIN RATE<br><br>{win_rate}%</div>', unsafe_allow_html=True)
+
+    # =====================================================
     # LIVE TRADE PANEL
     # =====================================================
 
     st.subheader("LIVE TRADE PANEL")
+
+    entry = 0
+    sl = 0
+    tp1 = 0
 
     if valid_trade:
 
@@ -652,6 +747,108 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     else:
 
         st.warning("NO VALID HTF + LTF SMART MONEY ENTRY")
+
+    # =====================================================
+    # TRADE HISTORY
+    # =====================================================
+
+    trade_result = "RUNNING"
+
+    if valid_trade:
+
+        if bias == "BULLISH":
+
+            if current_price >= tp1:
+                trade_result = "TP"
+
+            elif current_price <= sl:
+                trade_result = "SL"
+
+        else:
+
+            if current_price <= tp1:
+                trade_result = "TP"
+
+            elif current_price >= sl:
+                trade_result = "SL"
+
+        if trade_result != "RUNNING":
+
+            new_trade = pd.DataFrame({
+
+                "DATE":[datetime.now().strftime("%d-%m-%Y")],
+
+                "TIME":[datetime.now().strftime("%H:%M:%S")],
+
+                "PAIR":[pair],
+
+                "ENTRY":[entry],
+
+                "TP":[tp1],
+
+                "SL":[sl],
+
+                "RESULT":[trade_result]
+
+            })
+
+            st.session_state.trade_history = pd.concat(
+                [
+                    new_trade,
+                    st.session_state.trade_history
+                ],
+                ignore_index=True
+            )
+
+            st.session_state.trade_history.drop_duplicates(
+                subset=["TIME","PAIR"],
+                inplace=True
+            )
+
+            st.session_state.total_trades += 1
+
+            if trade_result == "TP":
+                st.session_state.wins += 1
+
+            else:
+                st.session_state.losses += 1
+
+    # =====================================================
+    # LIVE TRADE HISTORY
+    # =====================================================
+
+    st.subheader("LIVE TRADE HISTORY")
+
+    st.dataframe(
+        st.session_state.trade_history,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # TELEGRAM ALERT
+    # =====================================================
+
+    signal = f"""
+
+ICT AI BOT ALERT
+
+PAIR : {pair}
+
+BIAS : {bias}
+
+SESSION : {session}
+
+PRICE : {current_price}
+
+AI SCORE : {score}%
+
+"""
+
+    if st.session_state.last_signal != signal:
+
+        send_telegram(signal)
+
+        st.session_state.last_signal = signal
 
 else:
 

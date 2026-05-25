@@ -1059,65 +1059,72 @@ if valid_trade:
         sl = round(entry + 20,2)
         tp1 = round(entry - 40,2)
 
-    profit = round(abs(tp1 - entry),2)
-
     st.subheader("LIVE TRADE PANEL")
 
+    live_box = f"""
+    <div style="
+    background:linear-gradient(135deg,#141e30,#243b55);
+    padding:35px;
+    border-radius:20px;
+    border:2px solid #00c6ff;
+    margin-bottom:25px;
+    ">
+
+    <div style="
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+    ">
+
+    <div class="box blue">
+    DATE<br><br>
+    {datetime.now().strftime("%d-%m-%Y")}
+    </div>
+
+    <div class="box purple">
+    TIME<br><br>
+    {datetime.now().strftime("%H:%M:%S")}
+    </div>
+
+    <div class="box green">
+    SESSION<br><br>
+    {session}
+    </div>
+
+    <div class="box orange">
+    PAIR<br><br>
+    {pair}
+    </div>
+
+    <div class="box blue">
+    ENTRY<br><br>
+    {entry}
+    </div>
+
+    <div class="box red">
+    SL<br><br>
+    {sl}
+    </div>
+
+    <div class="box green">
+    TP<br><br>
+    {tp1}
+    </div>
+
+    <div class="box purple">
+    ENTRY MODEL<br><br>
+    {entry_model}
+    </div>
+
+    </div>
+
+    </div>
+    """
+
     st.markdown(
-        f'''
-        <div class="box blue">
-        ENTRY : {entry}<br><br>
-        SL : {sl}<br><br>
-        TP : {tp1}<br><br>
-        EST PROFIT : {profit}
-        </div>
-        ''',
+        live_box,
         unsafe_allow_html=True
     )
-
-    signal = f"""
-
-ICT AI BOT ALERT
-
-ENTRY MODEL : {entry_model}
-
-PAIR : {pair}
-
-TRADE TYPE : {"BUY" if bias=="BULLISH" else "SELL"}
-
-ENTRY : {entry}
-
-SL : {sl}
-
-TP1 : {tp1}
-
-AI CONFIDENCE : {score}%
-
-ENTRY QUALITY : {quality}
-
-SESSION : {session}
-
-DAILY FLOW : {daily_flow}
-
-PD ARRAY : {pd_zone}
-
-NEWS STATUS : {news_status}
-
-HTF BIAS : {bias}
-
-LTF MSS : {ltf_mss}
-
-MICRO FVG : {micro_fvg}
-
-STATUS : READY FOR ENTRY
-
-"""
-
-    if st.session_state.last_signal != signal:
-
-        send_telegram(signal)
-
-        st.session_state.last_signal = signal
 
 else:
 

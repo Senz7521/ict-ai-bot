@@ -847,19 +847,6 @@ if "FVG" in str(micro_fvg):
 if micro_tap == "VALID TAP":
     score += 5
 
-# =========================================================
-# AI CONFIDENCE
-# =========================================================
-
-st.markdown(
-    f'''
-    <div class="box green">
-    AI CONFIDENCE SCORE<br><br>
-    {score}%
-    </div>
-    ''',
-    unsafe_allow_html=True
-)
 
 # =========================================================
 # FINAL ENTRY MODELS

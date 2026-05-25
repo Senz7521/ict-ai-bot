@@ -150,7 +150,7 @@ PAIRS = {
     "XRP/USDT":"XRP/USDT",
     "BNB/USDT":"BNB/USDT",
     "SOL/USDT":"SOL/USDT",
-    "XAU/USD":"XAUT/USDT"
+    "XAU/USD":"XAUUSDT"
 }
 
 # =========================================================

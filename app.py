@@ -16,7 +16,7 @@ import requests
 import plotly.graph_objects as go
 
 from datetime import datetime
-
+from telegram_pro import *
 # =========================================================
 # PAGE CONFIG
 # =========================================================
@@ -102,19 +102,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# =========================================================
-# TELEGRAM
-# =========================================================
 
-TOKEN = "8854671551:AAGOwQ3waewFoQzadtwuJRBAVJNEOPKUkx0"
-CHAT_ID = "5240659041"
 
-if "last_signal" not in st.session_state:
-    st.session_state.last_signal = ""
-
-def send_telegram(message):
-
-    try:
+try:
 
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
@@ -125,7 +115,7 @@ def send_telegram(message):
 
         requests.post(url,data=data)
 
-    except:
+except:
         pass
 
 # =========================================================

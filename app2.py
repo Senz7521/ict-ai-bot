@@ -1157,7 +1157,91 @@ if st.session_state.total_trades > 0:
     )
 
 st.subheader("BACKTEST RESULTS")
+# =========================================================
+# TRADE HISTORY
+# =========================================================
 
+if "trade_history" not in st.session_state:
+
+    st.session_state.trade_history = pd.DataFrame(columns=[
+
+        "DATE",
+        "TIME",
+        "SESSION",
+        "PAIR",
+        "ENTRY",
+        "TP",
+        "SL",
+        "MODEL"
+
+    ])
+
+# =========================================================
+# SAVE TRADE
+# =========================================================
+
+if valid_trade:
+
+    new_trade = {
+
+        "DATE": datetime.now().strftime("%d-%m-%Y"),
+
+        "TIME": datetime.now().strftime("%H:%M:%S"),
+
+        "SESSION": session,
+
+        "PAIR": pair,
+
+        "ENTRY": entry,
+
+        "TP": tp1,
+
+        "SL": sl,
+
+        "MODEL": entry_model
+
+    }
+
+    latest = pd.DataFrame([new_trade])
+
+    if st.session_state.trade_history.empty:
+
+        st.session_state.trade_history = latest
+
+    else:
+
+        last_entry = st.session_state.trade_history.iloc[-1]
+
+        if (
+            last_entry["ENTRY"] != entry
+            or
+            last_entry["PAIR"] != pair
+        ):
+
+            st.session_state.trade_history = pd.concat(
+
+                [
+                    latest,
+                    st.session_state.trade_history
+                ],
+
+                ignore_index=True
+
+            )
+
+# =========================================================
+# SHOW HISTORY
+# =========================================================
+
+st.subheader("LIVE TRADE HISTORY")
+
+st.dataframe(
+
+    st.session_state.trade_history,
+
+    use_container_width=True
+
+)
 b1,b2,b3 = st.columns(3)
 
 with b1:

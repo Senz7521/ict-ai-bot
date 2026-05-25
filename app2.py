@@ -1,7 +1,6 @@
 # =========================================================
 # ICT AI BOT PRO MAX ULTRA FINAL
 # FULL PROFESSIONAL SMART MONEY VERSION
-# STRICT HTF + LTF CONFLUENCE
 # =========================================================
 
 # =========================================================
@@ -244,9 +243,6 @@ def get_htf_bias(df):
 
     current_close = df["close"].iloc[-1]
 
-    recent_high = df["high"].iloc[-5:].max()
-    recent_low = df["low"].iloc[-5:].min()
-
     if current_close > swing_high:
         return "BULLISH"
 
@@ -413,14 +409,12 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
         bias = "NEUTRAL"
 
     htf_poi = order_block(htf_4h,bias)
-    htf_fvg = detect_fvg(htf_4h,bias)
 
-    ltf_poi = order_block(ltf_df,bias)
     ltf_fvg = detect_fvg(ltf_df,bias)
 
-    mss = detect_mss(ltf_df,bias)
+    ltf_mss = detect_mss(ltf_df,bias)
 
-    micro = micro_mss(ltf_df,bias)
+    ltf_micro = micro_mss(ltf_df,bias)
 
     displacement_signal = displacement(ltf_df)
 
@@ -431,11 +425,6 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
         2
     )
 
-    tapped = False
-
-    if htf_poi != "NO OB":
-        tapped = True
-
     # =====================================================
     # AI SCORE
     # =====================================================
@@ -445,42 +434,33 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     if bias != "NEUTRAL":
         score += 20
 
-    if "MSS" in mss:
+    if "MSS" in ltf_mss:
         score += 20
 
     if "FVG" in ltf_fvg:
         score += 20
 
-    if displacement_signal == "VALID DISPLACEMENT":
+    if "VALID" in displacement_signal:
         score += 20
 
-    if tapped:
+    if "MICRO" in ltf_micro:
         score += 20
 
     # =====================================================
-    # STRICT ENTRY MODEL
+    # STRICT ENTRY
     # =====================================================
 
     valid_trade = False
 
     if (
-
         bias != "NEUTRAL"
-
-        and bias_4h == bias_1h
-
-        and htf_poi != "NO OB"
-
-        and "MSS" in mss
-
+        and "OB" in htf_poi
         and "FVG" in ltf_fvg
-
-        and displacement_signal == "VALID DISPLACEMENT"
-
-        and tapped
-
+        and "MSS" in ltf_mss
+        and "MICRO" in ltf_micro
+        and "VALID" in displacement_signal
+        and score >= 80
     ):
-
         valid_trade = True
 
     # =====================================================
@@ -498,7 +478,6 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
             high=ltf_df["high"],
             low=ltf_df["low"],
             close=ltf_df["close"],
-
             increasing_line_color="#00ff88",
             decreasing_line_color="#ff3355"
         )
@@ -507,33 +486,15 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     fig.update_layout(
         template="plotly_dark",
         height=700,
+        xaxis_rangeslider_visible=False,
         paper_bgcolor="#0e1117",
-        plot_bgcolor="#0e1117",
-        xaxis_rangeslider_visible=False
+        plot_bgcolor="#0e1117"
     )
 
     st.plotly_chart(
         fig,
         use_container_width=True
     )
-
-    # =====================================================
-    # TOP BOXES
-    # =====================================================
-
-    c1,c2,c3,c4 = st.columns(4)
-
-    with c1:
-        st.markdown(f'<div class="box blue">PAIR<br>{pair}</div>',unsafe_allow_html=True)
-
-    with c2:
-        st.markdown(f'<div class="box green">LIVE PRICE<br>{current_price}</div>',unsafe_allow_html=True)
-
-    with c3:
-        st.markdown(f'<div class="box purple">SESSION<br>{session}</div>',unsafe_allow_html=True)
-
-    with c4:
-        st.markdown(f'<div class="box yellow">AI SCORE<br>{score}%</div>',unsafe_allow_html=True)
 
     # =====================================================
     # HTF ANALYSIS
@@ -544,16 +505,16 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     h1,h2,h3,h4 = st.columns(4)
 
     with h1:
-        st.markdown(f'<div class="box green">4H BIAS<br>{bias_4h}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box green">4H BIAS<br>{bias_4h}</div>', unsafe_allow_html=True)
 
     with h2:
-        st.markdown(f'<div class="box blue">1H BIAS<br>{bias_1h}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box blue">1H BIAS<br>{bias_1h}</div>', unsafe_allow_html=True)
 
     with h3:
-        st.markdown(f'<div class="box purple">FINAL BIAS<br>{bias}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box purple">FINAL BIAS<br>{bias}</div>', unsafe_allow_html=True)
 
     with h4:
-        st.markdown(f'<div class="box yellow">HTF POI<br>{htf_poi}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box yellow">HTF POI<br>{htf_poi}</div>', unsafe_allow_html=True)
 
     # =====================================================
     # LTF ANALYSIS
@@ -564,16 +525,26 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
     l1,l2,l3,l4 = st.columns(4)
 
     with l1:
-        st.markdown(f'<div class="box blue">LTF FVG<br>{ltf_fvg}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box blue">LTF FVG<br>{ltf_fvg}</div>', unsafe_allow_html=True)
 
     with l2:
-        st.markdown(f'<div class="box green">LTF MSS<br>{mss}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box green">LTF MSS<br>{ltf_mss}</div>', unsafe_allow_html=True)
 
     with l3:
-        st.markdown(f'<div class="box yellow">MICRO MSS<br>{micro}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box purple">MICRO MSS<br>{ltf_micro}</div>', unsafe_allow_html=True)
 
     with l4:
-        st.markdown(f'<div class="box purple">DISPLACEMENT<br>{displacement_signal}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="box yellow">DISPLACEMENT<br>{displacement_signal}</div>', unsafe_allow_html=True)
+
+    st.markdown(
+        f'<div class="box orange">PD ARRAY<br>{pd_zone}</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<div class="box green">AI CONFIDENCE SCORE<br>{score}%</div>',
+        unsafe_allow_html=True
+    )
 
     # =====================================================
     # LIVE TRADE PANEL
@@ -586,23 +557,18 @@ if htf_4h is not None and htf_1h is not None and ltf_df is not None:
         if bias == "BULLISH":
 
             entry = current_price
-
             sl = round(entry - 20,2)
-
             tp1 = round(entry + 40,2)
 
         else:
 
             entry = current_price
-
             sl = round(entry + 20,2)
-
             tp1 = round(entry - 40,2)
 
         profit = round(abs(tp1 - entry),2)
 
         trade_date = datetime.now().strftime("%d-%m-%Y")
-
         trade_time = datetime.now().strftime("%H:%M:%S")
 
         big_box = f"""
